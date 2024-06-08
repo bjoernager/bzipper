@@ -1,3 +1,9 @@
+# 0.0.1
+
+* Fix copyright notices
+* Add license notices
+* Update readme
+
 # 0.0.0
 
 * Add changelog
