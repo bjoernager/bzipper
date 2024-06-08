@@ -19,6 +19,9 @@
 // er General Public License along with bzipper. If
 // not, see <https://www.gnu.org/licenses/>.
 
+#[cfg(test)]
+mod test;
+
 use crate::{
 	Deserialise,
 	DStream,
@@ -28,7 +31,9 @@ use crate::{
 	SStream,
 };
 
-use std::fmt::{Display, Debug, Formatter};
+use std::cmp::Ordering;
+use std::fmt::{Debug, Display, Formatter, Write};
+use std::ops::{Index, IndexMut};
 use std::str::FromStr;
 
 /// Owned string with maximum size.
@@ -74,6 +79,32 @@ impl<const N: usize> FixedString<N> {
 	#[must_use]
 	pub const fn is_empty(&self) -> bool { self.len == 0x0 }
 
+	/// Borrows the character at the specified index.
+	///
+	/// If no element exists at that position, [`None`] is returned instead.
+	#[inline]
+	#[must_use]
+	pub const fn get(&self, index: usize) -> Option<&char> {
+		if index >= self.len {
+			None
+		} else {
+			Some(&self.buf[index])
+		}
+	}
+
+	/// Mutably borrows the character at the specified index.
+	///
+	/// If no element exists at that position, [`None`] is returned instead.
+	#[inline]
+	#[must_use]
+	pub fn get_mut(&mut self, index: usize) -> Option<&mut char> {
+		if index >= self.len {
+			None
+		} else {
+			Some(&mut self.buf[index])
+		}
+	}
+
 	/// Returns an iterator to the contained characters.
 	#[inline(always)]
 	pub fn iter(&self) -> std::slice::Iter<'_, char> { self.buf[0x0..self.len].iter() }
@@ -85,19 +116,9 @@ impl<const N: usize> FixedString<N> {
 
 impl<const N: usize> Debug for FixedString<N> {
 	fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
-		write!(f, "\"")?;
-
-		for c in self {
-			if c.is_ascii_graphic() {
-				write!(f, "{c}")?;
-			} else if *c == '\0' {
-				write!(f, "\\0")?;
-			} else {
-				write!(f, "{c}")?;
-			}
- 		}
-
-		 write!(f, "\"")?;
+		f.write_char('"')?;
+		for c in self { write!(f, "{}", c.escape_debug())? }
+		f.write_char('"')?;
 
 		Ok(())
 	}
@@ -145,10 +166,27 @@ impl<const N: usize> Display for FixedString<N> {
 
 impl<const N: usize> Eq for FixedString<N> { }
 
+impl<const N: usize> From<[char; N]> for FixedString<N> {
+	fn from(value: [char; N]) -> Self { Self {
+		buf: value,
+		len: N,
+	} }
+}
+
 impl<const N: usize> FromStr for FixedString<N> {
 	type Err = Error;
 
 	fn from_str(s: &str) -> Result<Self, Error> { Self::new(s) }
+}
+
+impl<const N: usize> Index<usize> for FixedString<N> {
+	type Output = char;
+
+	fn index(&self, index: usize) -> &Self::Output { self.get(index).unwrap() }
+}
+
+impl<const N: usize> IndexMut<usize> for FixedString<N> {
+	fn index_mut(&mut self, index: usize) -> &mut Self::Output { self.get_mut(index).unwrap() }
 }
 
 impl<const N: usize> IntoIterator for FixedString<N> {
@@ -182,8 +220,12 @@ impl<'a, const N: usize> IntoIterator for &'a mut FixedString<N> {
 	fn into_iter(self) -> Self::IntoIter { self.iter_mut() }
 }
 
-impl<const N: usize> PartialEq for FixedString<N> {
-	fn eq(&self, other: &Self) -> bool {
+impl<const N: usize> Ord for FixedString<N> {
+	fn cmp(&self, other: &Self) -> Ordering { self.partial_cmp(other).unwrap() }
+}
+
+impl<const N: usize, const M: usize> PartialEq<FixedString<M>> for FixedString<N> {
+	fn eq(&self, other: &FixedString<M>) -> bool {
 		if self.len() != other.len() { return false };
 
 		for i in 0x0..self.len() {
@@ -201,6 +243,31 @@ impl<const N: usize> PartialEq<&str> for FixedString<N> {
 		}
 
 		true
+	}
+}
+
+impl<const N: usize, const M: usize> PartialOrd<FixedString<M>> for FixedString<N> {
+	fn partial_cmp(&self, other: &FixedString<M>) -> Option<Ordering> {
+		let len = self.len().max(other.len());
+
+		for i in 0x0..len {
+			let lc = self.get(i);
+			let rc = other.get(i);
+
+			match (lc, rc) {
+				(None, None)    => return Some(Ordering::Equal),
+				(Some(_), None) => return Some(Ordering::Greater),
+				(None, Some(_)) => return Some(Ordering::Less),
+
+				(Some(lc), Some(rc)) => {
+					let ordering = lc.cmp(rc);
+
+					if ordering != Ordering::Equal { return Some(ordering) };
+				}
+			}
+		}
+
+		Some(Ordering::Equal)
 	}
 }
 

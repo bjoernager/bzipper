@@ -63,6 +63,226 @@ macro_rules! impl_int {
 	};
 }
 
+impl<T0, T1> Serialise for (T0, T1)
+where
+	T0: Serialise,
+	T1: Serialise, {
+	fn serialise(&self, stream: &mut SStream) {
+		self.0.serialise(stream);
+		self.1.serialise(stream);
+	}
+}
+
+impl<T0, T1, T2> Serialise for (T0, T1, T2)
+where
+	T0: Serialise,
+	T1: Serialise,
+	T2: Serialise, {
+	fn serialise(&self, stream: &mut SStream) {
+		self.0.serialise(stream);
+		self.1.serialise(stream);
+		self.2.serialise(stream);
+	}
+}
+
+impl<T0, T1, T2, T3> Serialise for (T0, T1, T2, T3)
+where
+	T0: Serialise,
+	T1: Serialise,
+	T2: Serialise,
+	T3: Serialise, {
+	fn serialise(&self, stream: &mut SStream) {
+		self.0.serialise(stream);
+		self.1.serialise(stream);
+		self.2.serialise(stream);
+		self.3.serialise(stream);
+	}
+}
+
+impl<T0, T1, T2, T3, T4> Serialise for (T0, T1, T2, T3, T4)
+where
+	T0: Serialise,
+	T1: Serialise,
+	T2: Serialise,
+	T3: Serialise,
+	T4: Serialise, {
+	fn serialise(&self, stream: &mut SStream) {
+		self.0.serialise(stream);
+		self.1.serialise(stream);
+		self.2.serialise(stream);
+		self.3.serialise(stream);
+		self.4.serialise(stream);
+	}
+}
+
+impl<T0, T1, T2, T3, T4, T5> Serialise for (T0, T1, T2, T3, T4, T5)
+where
+	T0: Serialise,
+	T1: Serialise,
+	T2: Serialise,
+	T3: Serialise,
+	T4: Serialise,
+	T5: Serialise, {
+	fn serialise(&self, stream: &mut SStream) {
+		self.0.serialise(stream);
+		self.1.serialise(stream);
+		self.2.serialise(stream);
+		self.3.serialise(stream);
+		self.4.serialise(stream);
+		self.5.serialise(stream);
+	}
+}
+
+impl<T0, T1, T2, T3, T4, T5, T6> Serialise for (T0, T1, T2, T3, T4, T5, T6)
+where
+	T0: Serialise,
+	T1: Serialise,
+	T2: Serialise,
+	T3: Serialise,
+	T4: Serialise,
+	T5: Serialise,
+	T6: Serialise, {
+	fn serialise(&self, stream: &mut SStream) {
+		self.0.serialise(stream);
+		self.1.serialise(stream);
+		self.2.serialise(stream);
+		self.3.serialise(stream);
+		self.4.serialise(stream);
+		self.5.serialise(stream);
+		self.6.serialise(stream);
+	}
+}
+
+impl<T0, T1, T2, T3, T4, T5, T6, T7> Serialise for (T0, T1, T2, T3, T4, T5, T6, T7)
+where
+	T0: Serialise,
+	T1: Serialise,
+	T2: Serialise,
+	T3: Serialise,
+	T4: Serialise,
+	T5: Serialise,
+	T6: Serialise,
+	T7: Serialise, {
+	fn serialise(&self, stream: &mut SStream) {
+		self.0.serialise(stream);
+		self.1.serialise(stream);
+		self.2.serialise(stream);
+		self.3.serialise(stream);
+		self.4.serialise(stream);
+		self.5.serialise(stream);
+		self.6.serialise(stream);
+		self.7.serialise(stream);
+	}
+}
+
+impl<T0, T1, T2, T3, T4, T5, T6, T7, T8> Serialise for (T0, T1, T2, T3, T4, T5, T6, T7, T8)
+where
+	T0: Serialise,
+	T1: Serialise,
+	T2: Serialise,
+	T3: Serialise,
+	T4: Serialise,
+	T5: Serialise,
+	T6: Serialise,
+	T7: Serialise,
+	T8: Serialise, {
+	fn serialise(&self, stream: &mut SStream) {
+		self.0.serialise(stream);
+		self.1.serialise(stream);
+		self.2.serialise(stream);
+		self.3.serialise(stream);
+		self.4.serialise(stream);
+		self.5.serialise(stream);
+		self.6.serialise(stream);
+		self.7.serialise(stream);
+		self.8.serialise(stream);
+	}
+}
+
+impl<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9> Serialise for (T0, T1, T2, T3, T4, T5, T6, T7, T8, T9)
+where
+	T0: Serialise,
+	T1: Serialise,
+	T2: Serialise,
+	T3: Serialise,
+	T4: Serialise,
+	T5: Serialise,
+	T6: Serialise,
+	T7: Serialise,
+	T8: Serialise,
+	T9: Serialise, {
+	fn serialise(&self, stream: &mut SStream) {
+		self.0.serialise(stream);
+		self.1.serialise(stream);
+		self.2.serialise(stream);
+		self.3.serialise(stream);
+		self.4.serialise(stream);
+		self.5.serialise(stream);
+		self.6.serialise(stream);
+		self.7.serialise(stream);
+		self.8.serialise(stream);
+		self.9.serialise(stream);
+	}
+}
+
+impl<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10> Serialise for (T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10)
+where
+	T0:  Serialise,
+	T1:  Serialise,
+	T2:  Serialise,
+	T3:  Serialise,
+	T4:  Serialise,
+	T5:  Serialise,
+	T6:  Serialise,
+	T7:  Serialise,
+	T8:  Serialise,
+	T9:  Serialise,
+	T10: Serialise, {
+	fn serialise(&self, stream: &mut SStream) {
+		self.0.serialise(stream);
+		self.1.serialise(stream);
+		self.2.serialise(stream);
+		self.3.serialise(stream);
+		self.4.serialise(stream);
+		self.5.serialise(stream);
+		self.6.serialise(stream);
+		self.7.serialise(stream);
+		self.8.serialise(stream);
+		self.9.serialise(stream);
+		self.10.serialise(stream);
+	}
+}
+
+impl<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11> Serialise for (T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11)
+where
+	T0:  Serialise,
+	T1:  Serialise,
+	T2:  Serialise,
+	T3:  Serialise,
+	T4:  Serialise,
+	T5:  Serialise,
+	T6:  Serialise,
+	T7:  Serialise,
+	T8:  Serialise,
+	T9:  Serialise,
+	T10: Serialise,
+	T11: Serialise, {
+	fn serialise(&self, stream: &mut SStream) {
+		self.0.serialise(stream);
+		self.1.serialise(stream);
+		self.2.serialise(stream);
+		self.3.serialise(stream);
+		self.4.serialise(stream);
+		self.5.serialise(stream);
+		self.6.serialise(stream);
+		self.7.serialise(stream);
+		self.8.serialise(stream);
+		self.9.serialise(stream);
+		self.10.serialise(stream);
+		self.11.serialise(stream);
+	}
+}
+
 impl<T: Serialise, const N: usize> Serialise for [T; N] {
 	fn serialise(&self, stream: &mut SStream) {
 		u64::try_from(self.len()).unwrap().serialise(stream);

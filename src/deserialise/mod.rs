@@ -86,6 +86,270 @@ macro_rules! impl_int {
 	};
 }
 
+impl<T0, T1> Deserialise for (T0, T1)
+where
+	T0: Deserialise<Error: StdError + 'static>,
+	T1: Deserialise<Error: StdError + 'static>, {
+	type Error = Box<dyn StdError>;
+
+	fn deserialise(stream: &mut DStream) -> Result<Self, Self::Error> {
+		Ok((
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+		))
+	}
+}
+
+impl<T0, T1, T2> Deserialise for (T0, T1, T2)
+where
+	T0: Deserialise<Error: StdError + 'static>,
+	T1: Deserialise<Error: StdError + 'static>,
+	T2: Deserialise<Error: StdError + 'static>, {
+	type Error = Box<dyn StdError>;
+
+	fn deserialise(stream: &mut DStream) -> Result<Self, Self::Error> {
+		Ok((
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+		))
+	}
+}
+
+impl<T0, T1, T2, T3> Deserialise for (T0, T1, T2, T3)
+where
+	T0: Deserialise<Error: StdError + 'static>,
+	T1: Deserialise<Error: StdError + 'static>,
+	T2: Deserialise<Error: StdError + 'static>,
+	T3: Deserialise<Error: StdError + 'static>, {
+	type Error = Box<dyn StdError>;
+
+	fn deserialise(stream: &mut DStream) -> Result<Self, Self::Error> {
+		Ok((
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+		))
+	}
+}
+
+impl<T0, T1, T2, T3, T4> Deserialise for (T0, T1, T2, T3, T4)
+where
+	T0: Deserialise<Error: StdError + 'static>,
+	T1: Deserialise<Error: StdError + 'static>,
+	T2: Deserialise<Error: StdError + 'static>,
+	T3: Deserialise<Error: StdError + 'static>,
+	T4: Deserialise<Error: StdError + 'static>, {
+	type Error = Box<dyn StdError>;
+
+	fn deserialise(stream: &mut DStream) -> Result<Self, Self::Error> {
+		Ok((
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+		))
+	}
+}
+
+impl<T0, T1, T2, T3, T4, T5> Deserialise for (T0, T1, T2, T3, T4, T5)
+where
+	T0: Deserialise<Error: StdError + 'static>,
+	T1: Deserialise<Error: StdError + 'static>,
+	T2: Deserialise<Error: StdError + 'static>,
+	T3: Deserialise<Error: StdError + 'static>,
+	T4: Deserialise<Error: StdError + 'static>,
+	T5: Deserialise<Error: StdError + 'static>, {
+	type Error = Box<dyn StdError>;
+
+	fn deserialise(stream: &mut DStream) -> Result<Self, Self::Error> {
+		Ok((
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+		))
+	}
+}
+
+impl<T0, T1, T2, T3, T4, T5, T6> Deserialise for (T0, T1, T2, T3, T4, T5, T6)
+where
+	T0: Deserialise<Error: StdError + 'static>,
+	T1: Deserialise<Error: StdError + 'static>,
+	T2: Deserialise<Error: StdError + 'static>,
+	T3: Deserialise<Error: StdError + 'static>,
+	T4: Deserialise<Error: StdError + 'static>,
+	T5: Deserialise<Error: StdError + 'static>,
+	T6: Deserialise<Error: StdError + 'static>, {
+	type Error = Box<dyn StdError>;
+
+	fn deserialise(stream: &mut DStream) -> Result<Self, Self::Error> {
+		Ok((
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+		))
+	}
+}
+
+impl<T0, T1, T2, T3, T4, T5, T6, T7> Deserialise for (T0, T1, T2, T3, T4, T5, T6, T7)
+where
+	T0: Deserialise<Error: StdError + 'static>,
+	T1: Deserialise<Error: StdError + 'static>,
+	T2: Deserialise<Error: StdError + 'static>,
+	T3: Deserialise<Error: StdError + 'static>,
+	T4: Deserialise<Error: StdError + 'static>,
+	T5: Deserialise<Error: StdError + 'static>,
+	T6: Deserialise<Error: StdError + 'static>,
+	T7: Deserialise<Error: StdError + 'static>, {
+	type Error = Box<dyn StdError>;
+
+	fn deserialise(stream: &mut DStream) -> Result<Self, Self::Error> {
+		Ok((
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+		))
+	}
+}
+
+impl<T0, T1, T2, T3, T4, T5, T6, T7, T8> Deserialise for (T0, T1, T2, T3, T4, T5, T6, T7, T8)
+where
+	T0: Deserialise<Error: StdError + 'static>,
+	T1: Deserialise<Error: StdError + 'static>,
+	T2: Deserialise<Error: StdError + 'static>,
+	T3: Deserialise<Error: StdError + 'static>,
+	T4: Deserialise<Error: StdError + 'static>,
+	T5: Deserialise<Error: StdError + 'static>,
+	T6: Deserialise<Error: StdError + 'static>,
+	T7: Deserialise<Error: StdError + 'static>,
+	T8: Deserialise<Error: StdError + 'static>, {
+	type Error = Box<dyn StdError>;
+
+	fn deserialise(stream: &mut DStream) -> Result<Self, Self::Error> {
+		Ok((
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+		))
+	}
+}
+
+impl<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9> Deserialise for (T0, T1, T2, T3, T4, T5, T6, T7, T8, T9)
+where
+	T0: Deserialise<Error: StdError + 'static>,
+	T1: Deserialise<Error: StdError + 'static>,
+	T2: Deserialise<Error: StdError + 'static>,
+	T3: Deserialise<Error: StdError + 'static>,
+	T4: Deserialise<Error: StdError + 'static>,
+	T5: Deserialise<Error: StdError + 'static>,
+	T6: Deserialise<Error: StdError + 'static>,
+	T7: Deserialise<Error: StdError + 'static>,
+	T8: Deserialise<Error: StdError + 'static>,
+	T9: Deserialise<Error: StdError + 'static>, {
+	type Error = Box<dyn StdError>;
+
+	fn deserialise(stream: &mut DStream) -> Result<Self, Self::Error> {
+		Ok((
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+		))
+	}
+}
+
+impl<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10> Deserialise for (T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10)
+where
+	T0:  Deserialise<Error: StdError + 'static>,
+	T1:  Deserialise<Error: StdError + 'static>,
+	T2:  Deserialise<Error: StdError + 'static>,
+	T3:  Deserialise<Error: StdError + 'static>,
+	T4:  Deserialise<Error: StdError + 'static>,
+	T5:  Deserialise<Error: StdError + 'static>,
+	T6:  Deserialise<Error: StdError + 'static>,
+	T7:  Deserialise<Error: StdError + 'static>,
+	T8:  Deserialise<Error: StdError + 'static>,
+	T9:  Deserialise<Error: StdError + 'static>,
+	T10: Deserialise<Error: StdError + 'static>, {
+	type Error = Box<dyn StdError>;
+
+	fn deserialise(stream: &mut DStream) -> Result<Self, Self::Error> {
+		Ok((
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+		))
+	}
+}
+
+impl<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11> Deserialise for (T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11)
+where
+	T0:  Deserialise<Error: StdError + 'static>,
+	T1:  Deserialise<Error: StdError + 'static>,
+	T2:  Deserialise<Error: StdError + 'static>,
+	T3:  Deserialise<Error: StdError + 'static>,
+	T4:  Deserialise<Error: StdError + 'static>,
+	T5:  Deserialise<Error: StdError + 'static>,
+	T6:  Deserialise<Error: StdError + 'static>,
+	T7:  Deserialise<Error: StdError + 'static>,
+	T8:  Deserialise<Error: StdError + 'static>,
+	T9:  Deserialise<Error: StdError + 'static>,
+	T10: Deserialise<Error: StdError + 'static>,
+	T11: Deserialise<Error: StdError + 'static>, {
+	type Error = Box<dyn StdError>;
+
+	fn deserialise(stream: &mut DStream) -> Result<Self, Self::Error> {
+		Ok((
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+		))
+	}
+}
+
 impl<T: Deserialise<Error: StdError + 'static>, const N: usize> Deserialise for [T; N] {
 	type Error = Box<dyn StdError>;
 

@@ -1,3 +1,13 @@
+# 0.2.0
+
+* Clean up code
+* Implement `Ord` and `PartialOrd` for `FixedString`
+* Implement `Index` and `IndexMut` for `FixedString`
+* Add `get` and `get_mut` methods to `FixedString`
+* Implement `From<[char; N]>` for `FixedString`
+* Bump minor
+* Implement `Serialise` and `Deserialise` for tuples
+
 # 0.1.0
 
 * Bump minor
