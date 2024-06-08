@@ -1,3 +1,7 @@
+# 0.0.2
+
+* Add license files
+
 # 0.0.1
 
 * Fix copyright notices
