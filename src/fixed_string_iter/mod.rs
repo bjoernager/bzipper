@@ -19,27 +19,25 @@
 // er General Public License along with bzipper. If
 // not, see <https://www.gnu.org/licenses/>.
 
-//! Binary (de)serialisation.
-//!
-//! Contrary to [Serde](https://crates.io/crates/serde/)/[Bincode](https://crates.io/crates/bincode/), the goal of `bzipper` is to serialise data without inflating the resulting binary sequence.
-//! As such, one may consider this crate to be more low-level.
-//!
-//! Keep in mind that this project is still work-in-progress.
-//!
-//! This crate does not require any dependencies at the moment.
+/// Iterator to a fixed string.
+pub struct FixedStringIter<const N: usize> {
+	pub(in crate) buf: [char; N],
+	pub(in crate) len: usize,
 
-macro_rules! use_mod {
-	($vis:vis $name:ident) => {
-		mod $name;
-		$vis use $name::*;
-	};
+	pub(in crate) pos: Option<usize>,
 }
-pub(in crate) use use_mod;
 
-use_mod!(pub d_stream);
-use_mod!(pub deserialise);
-use_mod!(pub error);
-use_mod!(pub fixed_string);
-use_mod!(pub fixed_string_iter);
-use_mod!(pub s_stream);
-use_mod!(pub serialise);
+impl<const N: usize> Iterator for FixedStringIter<N> {
+	type Item = char;
+
+	fn next(&mut self) -> Option<Self::Item> {
+		let pos = self.pos.as_mut()?;
+
+		if *pos >= self.len { return None };
+
+		let item = self.buf[*pos];
+		*pos += 0x1;
+
+		Some(item)
+	}
+}

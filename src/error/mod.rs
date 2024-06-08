@@ -23,6 +23,7 @@
 
 use std::error::Error as StdError;
 use std::fmt::{Display, Formatter};
+use std::str::Utf8Error;
 
 /// Mapping of [`std::result::Result`].
 pub type Result<T> = std::result::Result<T, Error>;
@@ -37,9 +38,13 @@ pub enum Error {
 
 	EndOfDStream { len: usize, ok_len: usize },
 
+	FixedStringTooShort { len: usize, s: String },
+
 	InvalidBoolean { value: u8 },
 
 	InvalidCodePoint { value: u32 },
+
+	InvalidUtf8 { source: Utf8Error },
 
 	NullInteger,
 }
@@ -57,13 +62,21 @@ impl Display for Error {
 				write!(f, "({ok_len}) byte(s) were requested but only ({len}) byte(s) were left")
 			},
 
+			FixedStringTooShort { len, ref s } => {
+				write!(f, "fixed string with `N = {len}` cannot hold {s:?}")
+			},
+
 			InvalidBoolean { value } => {
 				write!(f, "expected boolean but got {value:#02X}")
 			},
 
 			InvalidCodePoint { value } => {
 				write!(f, "code point U+{value:04X} is not valid")
-			}
+			},
+
+			InvalidUtf8 { ref source } =>{
+				write!(f, "unable to parse utf8: \"{source}\"")
+			},
 
 			NullInteger => {
 				write!(f, "expected non-zero integer but got (0)")
@@ -72,4 +85,14 @@ impl Display for Error {
 	}
 }
 
-impl StdError for Error { }
+impl StdError for Error {
+	fn source(&self) -> Option<&(dyn StdError + 'static)> {
+		use Error::*;
+
+		match *self {
+			InvalidUtf8 { ref source } => Some(source),
+
+			_ => None,
+		}
+	}
+}

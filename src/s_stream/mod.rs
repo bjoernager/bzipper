@@ -19,21 +19,36 @@
 // er General Public License along with bzipper. If
 // not, see <https://www.gnu.org/licenses/>.
 
-use crate::serialise::Serialise;
+use crate::{DStream, Serialise};
 
 use std::fmt::{Debug, Formatter};
 use std::mem::size_of;
 
+/// Byte stream for serialisation.
+///
+/// The bytes themselves are contained by the type.
+/// The stream can
 #[derive(Clone, Eq, PartialEq)]
-pub struct SStream(Vec<u8>);
+pub struct SStream(pub(in crate) Vec<u8>);
 
 impl SStream {
+	/// Constructs a new, empty byte stream.
+	#[inline(always)]
 	#[must_use]
 	pub const fn new() -> Self { Self(Vec::new()) }
 
+	/// Extends the byte stream.
+	#[inline(always)]
 	pub fn append(&mut self, extra: &[u8]) {
 		self.0.extend(extra);
 	}
+
+	/// Converts the stream to a `DStream` object.
+	///
+	/// The returned object references the original stream.
+	#[inline(always)]
+	#[must_use]
+	pub fn as_d_stream(&self) -> DStream { DStream::new(&self.0) }
 }
 
 impl AsRef<[u8]> for SStream {
