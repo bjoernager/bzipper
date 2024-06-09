@@ -24,11 +24,11 @@ mod test;
 
 use crate::{
 	Deserialise,
-	DStream,
+	Dstream,
 	Error,
 	FixedStringIter,
 	Serialise,
-	SStream,
+	Sstream,
 };
 
 use std::cmp::Ordering;
@@ -53,13 +53,13 @@ impl<const N: usize> FixedString<N> {
 	///
 	/// # Errors
 	///
-	/// If the given string `s` cannot fit into `N` characters, a [`FixedStringTooShort`](Error::FixedStringTooShort) error is returned.
+	/// If the given string `s` cannot fit into `N` characters, an [`ArrayTooShort`](Error::ArrayTooShort) error is returned.
 	pub fn new(s: &str) -> Result<Self, Error> {
 		let mut buf = ['\0'; N];
 		let     len = s.chars().count();
 
 		for (i, c) in s.chars().enumerate() {
-			if i >= N { return Err(Error::FixedStringTooShort { len: N, s: s.to_owned() }) }
+			if i >= N { return Err(Error::ArrayTooShort { req: len, len: N }) }
 
 			buf[i] = c;
 		}
@@ -127,16 +127,16 @@ impl<const N: usize> Debug for FixedString<N> {
 impl<const N: usize> Deserialise for FixedString<N> {
 	type Error = Error;
 
-	fn deserialise(stream: &mut DStream) -> Result<Self, Self::Error> {
+	fn deserialise(stream: &mut Dstream) -> Result<Self, Self::Error> {
 		let len = usize::try_from(u64::deserialise(stream)?).unwrap();
 
 		let data = stream.take(len)?;
 		let s = std::str::from_utf8(data)
-			.map_err(|e| Error::InvalidUtf8 { source: e })?;
+			.map_err(|e| Error::BadString { source: e })?;
 
 		let len = s.chars().count();
 		if len > N {
-			return Err(Error::FixedStringTooShort { len, s: s.to_owned() });
+			return Err(Error::ArrayTooShort { req: len, len: N });
 		}
 
 		let mut buf = ['\0'; N];
@@ -272,7 +272,9 @@ impl<const N: usize, const M: usize> PartialOrd<FixedString<M>> for FixedString<
 }
 
 impl<const N: usize> Serialise for FixedString<N> {
-	fn serialise(&self, stream: &mut SStream) {
+	const SERIALISE_LIMIT: usize = 0x4 * N;
+
+	fn serialise(&self, stream: &mut Sstream) {
 		let s: String = self.iter().collect();
 
 		let len = u64::try_from(s.len()).unwrap();

@@ -21,8 +21,8 @@
 
 //! Binary (de)serialisation.
 //!
-//! Contrary to [Serde](https://crates.io/crates/serde/)/[Bincode](https://crates.io/crates/bincode/), the goal of `bzipper` is to serialise data without inflating the resulting binary sequence.
-//! As such, one may consider this crate to be more low-level.
+//! Contrary to [Serde](https://crates.io/crates/serde/)/[Bincode](https://crates.io/crates/bincode/), the goal of `bzipper` is to serialise with a known size constraint.
+//! Therefore, this crate may be more suited for networking or other cases where a fixed-sized buffer is needed.
 //!
 //! Keep in mind that this project is still work-in-progress.
 //!
@@ -36,10 +36,10 @@ macro_rules! use_mod {
 }
 pub(in crate) use use_mod;
 
-use_mod!(pub d_stream);
 use_mod!(pub deserialise);
+use_mod!(pub dstream);
 use_mod!(pub error);
 use_mod!(pub fixed_string);
 use_mod!(pub fixed_string_iter);
-use_mod!(pub s_stream);
 use_mod!(pub serialise);
+use_mod!(pub sstream);

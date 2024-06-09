@@ -1,3 +1,22 @@
+# 0.3.0
+
+* Bump minor
+* Document errors
+* Rename: `ArrayLengthMismatch` -> `ArrayTooShort`
+* Remove error `FixedStringTooShort`
+* Rename: `InvalidUtf8` -> `BadString`
+* Rework errors
+* Rename methods: `as_d_stream` -> `as_dstream`, `to_s_stream` -> `to_sstream`
+* Add `SERIALISATION_LIMIT` constant to `Serialise`
+* Make some deserialisations infallible
+* Add method `append_byte` to `SStream`
+* Add method `take_byte` to `DStream`
+* Rename `SStream` -> `Sstream`, `DStream` -> `Dstream`
+* Update readme
+* Update documentation
+* Make `Deserialise` require `Serialise`
+* Fix copyright/license notice in `"src/serialise/test.rs"`
+
 # 0.2.0
 
 * Clean up code

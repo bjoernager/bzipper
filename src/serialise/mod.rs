@@ -22,7 +22,7 @@
 #[cfg(test)]
 mod test;
 
-use crate::SStream;
+use crate::Sstream;
 
 use std::convert::Infallible;
 use std::mem::size_of;
@@ -30,17 +30,22 @@ use std::num::NonZero;
 
 /// Denotes a type capable of being serialised.
 pub trait Serialise: Sized {
+	/// The maximum ammount of bytes that can result from serialisation.
+	const SERIALISE_LIMIT: usize;
+
 	/// Serialises `self` into a byte stream.
 	///
-	/// One may assume that the resulting stream has at most the same ammount of bytes as before serialisation.
-	/// Therefore, not observing this rule is a logic error.
-	fn serialise(&self, stream: &mut SStream);
+	/// This function should not append *more* bytes than specified in [`SERIALISE_LIMIT`](Serialise::SERIALISE_LIMIT).
+	/// Doing so is considered a logic error.
+	fn serialise(&self, stream: &mut Sstream);
 }
 
 macro_rules! impl_float {
 	($type:ty) => {
 		impl Serialise for $type {
-			fn serialise(&self, stream: &mut SStream) {
+			const SERIALISE_LIMIT: usize = size_of::<$type>();
+
+			fn serialise(&self, stream: &mut Sstream) {
 				stream.append(&self.to_be_bytes())
 			}
 		}
@@ -50,13 +55,17 @@ macro_rules! impl_float {
 macro_rules! impl_int {
 	($type:ty) => {
 		impl Serialise for $type {
-			fn serialise(&self, stream: &mut SStream) {
+			const SERIALISE_LIMIT: usize = size_of::<$type>();
+
+			fn serialise(&self, stream: &mut Sstream) {
 				stream.append(&self.to_be_bytes())
 			}
 		}
 
 		impl Serialise for NonZero<$type> {
-			fn serialise(&self, stream: &mut SStream) {
+			const SERIALISE_LIMIT: usize = size_of::<$type>();
+
+			fn serialise(&self, stream: &mut Sstream) {
 				self.get().serialise(stream)
 			}
 		}
@@ -67,7 +76,11 @@ impl<T0, T1> Serialise for (T0, T1)
 where
 	T0: Serialise,
 	T1: Serialise, {
-	fn serialise(&self, stream: &mut SStream) {
+	const SERIALISE_LIMIT: usize =
+		T0::SERIALISE_LIMIT
+		+ T1::SERIALISE_LIMIT;
+
+	fn serialise(&self, stream: &mut Sstream) {
 		self.0.serialise(stream);
 		self.1.serialise(stream);
 	}
@@ -78,7 +91,12 @@ where
 	T0: Serialise,
 	T1: Serialise,
 	T2: Serialise, {
-	fn serialise(&self, stream: &mut SStream) {
+	const SERIALISE_LIMIT: usize =
+		T0::SERIALISE_LIMIT
+		+ T1::SERIALISE_LIMIT
+		+ T2::SERIALISE_LIMIT;
+
+	fn serialise(&self, stream: &mut Sstream) {
 		self.0.serialise(stream);
 		self.1.serialise(stream);
 		self.2.serialise(stream);
@@ -91,7 +109,13 @@ where
 	T1: Serialise,
 	T2: Serialise,
 	T3: Serialise, {
-	fn serialise(&self, stream: &mut SStream) {
+	const SERIALISE_LIMIT: usize =
+		T0::SERIALISE_LIMIT
+		+ T1::SERIALISE_LIMIT
+		+ T2::SERIALISE_LIMIT
+		+ T3::SERIALISE_LIMIT;
+
+		fn serialise(&self, stream: &mut Sstream) {
 		self.0.serialise(stream);
 		self.1.serialise(stream);
 		self.2.serialise(stream);
@@ -106,7 +130,14 @@ where
 	T2: Serialise,
 	T3: Serialise,
 	T4: Serialise, {
-	fn serialise(&self, stream: &mut SStream) {
+	const SERIALISE_LIMIT: usize =
+		T0::SERIALISE_LIMIT
+		+ T1::SERIALISE_LIMIT
+		+ T2::SERIALISE_LIMIT
+		+ T3::SERIALISE_LIMIT
+		+ T4::SERIALISE_LIMIT;
+
+		fn serialise(&self, stream: &mut Sstream) {
 		self.0.serialise(stream);
 		self.1.serialise(stream);
 		self.2.serialise(stream);
@@ -123,7 +154,15 @@ where
 	T3: Serialise,
 	T4: Serialise,
 	T5: Serialise, {
-	fn serialise(&self, stream: &mut SStream) {
+	const SERIALISE_LIMIT: usize =
+		T0::SERIALISE_LIMIT
+		+ T1::SERIALISE_LIMIT
+		+ T2::SERIALISE_LIMIT
+		+ T3::SERIALISE_LIMIT
+		+ T4::SERIALISE_LIMIT
+		+ T5::SERIALISE_LIMIT;
+
+		fn serialise(&self, stream: &mut Sstream) {
 		self.0.serialise(stream);
 		self.1.serialise(stream);
 		self.2.serialise(stream);
@@ -142,7 +181,16 @@ where
 	T4: Serialise,
 	T5: Serialise,
 	T6: Serialise, {
-	fn serialise(&self, stream: &mut SStream) {
+	const SERIALISE_LIMIT: usize =
+		T0::SERIALISE_LIMIT
+		+ T1::SERIALISE_LIMIT
+		+ T2::SERIALISE_LIMIT
+		+ T3::SERIALISE_LIMIT
+		+ T4::SERIALISE_LIMIT
+		+ T5::SERIALISE_LIMIT
+		+ T6::SERIALISE_LIMIT;
+
+		fn serialise(&self, stream: &mut Sstream) {
 		self.0.serialise(stream);
 		self.1.serialise(stream);
 		self.2.serialise(stream);
@@ -163,7 +211,17 @@ where
 	T5: Serialise,
 	T6: Serialise,
 	T7: Serialise, {
-	fn serialise(&self, stream: &mut SStream) {
+	const SERIALISE_LIMIT: usize =
+		T0::SERIALISE_LIMIT
+		+ T1::SERIALISE_LIMIT
+		+ T2::SERIALISE_LIMIT
+		+ T3::SERIALISE_LIMIT
+		+ T4::SERIALISE_LIMIT
+		+ T5::SERIALISE_LIMIT
+		+ T6::SERIALISE_LIMIT
+		+ T7::SERIALISE_LIMIT;
+
+		fn serialise(&self, stream: &mut Sstream) {
 		self.0.serialise(stream);
 		self.1.serialise(stream);
 		self.2.serialise(stream);
@@ -186,7 +244,18 @@ where
 	T6: Serialise,
 	T7: Serialise,
 	T8: Serialise, {
-	fn serialise(&self, stream: &mut SStream) {
+	const SERIALISE_LIMIT: usize =
+		T0::SERIALISE_LIMIT
+		+ T1::SERIALISE_LIMIT
+		+ T2::SERIALISE_LIMIT
+		+ T3::SERIALISE_LIMIT
+		+ T4::SERIALISE_LIMIT
+		+ T5::SERIALISE_LIMIT
+		+ T6::SERIALISE_LIMIT
+		+ T7::SERIALISE_LIMIT
+		+ T8::SERIALISE_LIMIT;
+
+		fn serialise(&self, stream: &mut Sstream) {
 		self.0.serialise(stream);
 		self.1.serialise(stream);
 		self.2.serialise(stream);
@@ -211,7 +280,19 @@ where
 	T7: Serialise,
 	T8: Serialise,
 	T9: Serialise, {
-	fn serialise(&self, stream: &mut SStream) {
+	const SERIALISE_LIMIT: usize =
+		T0::SERIALISE_LIMIT
+		+ T1::SERIALISE_LIMIT
+		+ T2::SERIALISE_LIMIT
+		+ T3::SERIALISE_LIMIT
+		+ T4::SERIALISE_LIMIT
+		+ T5::SERIALISE_LIMIT
+		+ T6::SERIALISE_LIMIT
+		+ T7::SERIALISE_LIMIT
+		+ T8::SERIALISE_LIMIT
+		+ T9::SERIALISE_LIMIT;
+
+		fn serialise(&self, stream: &mut Sstream) {
 		self.0.serialise(stream);
 		self.1.serialise(stream);
 		self.2.serialise(stream);
@@ -238,7 +319,20 @@ where
 	T8:  Serialise,
 	T9:  Serialise,
 	T10: Serialise, {
-	fn serialise(&self, stream: &mut SStream) {
+	const SERIALISE_LIMIT: usize =
+		T0::SERIALISE_LIMIT
+		+ T1::SERIALISE_LIMIT
+		+ T2::SERIALISE_LIMIT
+		+ T3::SERIALISE_LIMIT
+		+ T4::SERIALISE_LIMIT
+		+ T5::SERIALISE_LIMIT
+		+ T6::SERIALISE_LIMIT
+		+ T7::SERIALISE_LIMIT
+		+ T8::SERIALISE_LIMIT
+		+ T9::SERIALISE_LIMIT
+		+ T10::SERIALISE_LIMIT;
+
+		fn serialise(&self, stream: &mut Sstream) {
 		self.0.serialise(stream);
 		self.1.serialise(stream);
 		self.2.serialise(stream);
@@ -267,7 +361,21 @@ where
 	T9:  Serialise,
 	T10: Serialise,
 	T11: Serialise, {
-	fn serialise(&self, stream: &mut SStream) {
+	const SERIALISE_LIMIT: usize =
+		T0::SERIALISE_LIMIT
+		+ T1::SERIALISE_LIMIT
+		+ T2::SERIALISE_LIMIT
+		+ T3::SERIALISE_LIMIT
+		+ T4::SERIALISE_LIMIT
+		+ T5::SERIALISE_LIMIT
+		+ T6::SERIALISE_LIMIT
+		+ T7::SERIALISE_LIMIT
+		+ T8::SERIALISE_LIMIT
+		+ T9::SERIALISE_LIMIT
+		+ T10::SERIALISE_LIMIT
+		+ T11::SERIALISE_LIMIT;
+
+		fn serialise(&self, stream: &mut Sstream) {
 		self.0.serialise(stream);
 		self.1.serialise(stream);
 		self.2.serialise(stream);
@@ -284,7 +392,9 @@ where
 }
 
 impl<T: Serialise, const N: usize> Serialise for [T; N] {
-	fn serialise(&self, stream: &mut SStream) {
+	const SERIALISE_LIMIT: usize = T::SERIALISE_LIMIT * N;
+
+	fn serialise(&self, stream: &mut Sstream) {
 		u64::try_from(self.len()).unwrap().serialise(stream);
 
 		for v in self { v.serialise(stream) }
@@ -292,35 +402,45 @@ impl<T: Serialise, const N: usize> Serialise for [T; N] {
 }
 
 impl Serialise for () {
-	fn serialise(&self, _stream: &mut SStream) { }
+	const SERIALISE_LIMIT: usize = size_of::<Self>();
+
+	fn serialise(&self, _stream: &mut Sstream) { }
 }
 
 impl Serialise for bool {
-	fn serialise(&self, stream: &mut SStream) {
+	const SERIALISE_LIMIT: usize = size_of::<Self>();
+
+	fn serialise(&self, stream: &mut Sstream) {
 		u8::from(*self).serialise(stream)
 	}
 }
 
 impl Serialise for char {
-	fn serialise(&self, stream: &mut SStream) {
+	const SERIALISE_LIMIT: usize = size_of::<Self>();
+
+	fn serialise(&self, stream: &mut Sstream) {
 		u32::from(*self).serialise(stream)
 	}
 }
 
 impl Serialise for Infallible {
-	fn serialise(&self, _stream: &mut SStream) { unreachable!() }
+	const SERIALISE_LIMIT: usize = size_of::<Self>();
+
+	fn serialise(&self, _stream: &mut Sstream) { unreachable!() }
 }
 
 impl<T: Serialise> Serialise for Option<T> {
-	fn serialise(&self, stream: &mut SStream) {
+	const SERIALISE_LIMIT: usize = T::SERIALISE_LIMIT + 0x1;
+
+	fn serialise(&self, stream: &mut Sstream) {
 		match *self {
 			None => {
-				stream.append(&[0x00]);
+				stream.append_byte(0x00);
 				stream.append(&vec![0x00; size_of::<T>()]);
 			},
 
 			Some(ref v) => {
-				stream.append(&[0x01]);
+				stream.append_byte(0x01);
 				v.serialise(stream);
 			},
 		};
@@ -328,15 +448,23 @@ impl<T: Serialise> Serialise for Option<T> {
 }
 
 impl<T: Serialise, E: Serialise> Serialise for Result<T, E> {
-	fn serialise(&self, stream: &mut SStream) {
+	const SERIALISE_LIMIT: usize = const {
+		if size_of::<T>() > size_of::<T>() {
+			size_of::<T>()
+		} else {
+			size_of::<E>()
+		}
+	};
+
+	fn serialise(&self, stream: &mut Sstream) {
 		match *self {
 			Ok(ref v) => {
-				stream.append(&[0x00]);
+				stream.append_byte(0x00);
 				v.serialise(stream);
 			},
 
 			Err(ref e) => {
-				stream.append(&[0x01]);
+				stream.append_byte(0x01);
 				e.serialise(stream);
 			},
 		};

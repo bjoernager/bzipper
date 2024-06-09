@@ -1,10 +1,29 @@
-// Copyright 2022-2024 Gabriel Bjørnager Jensen.
+// Copyright 2024 Gabriel Bjørnager Jensen.
+//
+// This file is part of bzipper.
+//
+// bzipper is free software: you can redistribute
+// it and/or modify it under the terms of the GNU
+// Lesser General Public License as published by
+// the Free Software Foundation, either version 3
+// of the License, or (at your option) any later
+// version.
+//
+// bzipper is distributed in the hope that it will
+// be useful, but WITHOUT ANY WARRANTY; without
+// even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+// Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Less-
+// er General Public License along with bzipper. If
+// not, see <https://www.gnu.org/licenses/>.
 
-use crate::{FixedString, SStream, Serialise};
+use crate::{FixedString, Serialise, Sstream};
 
 #[test]
 fn test_serialise() {
-	let mut stream = SStream::new();
+	let mut stream = Sstream::new();
 
 	0x00_u8.serialise(&mut stream);
 	0xFF_u8.serialise(&mut stream);

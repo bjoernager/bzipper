@@ -19,7 +19,7 @@
 // er General Public License along with bzipper. If
 // not, see <https://www.gnu.org/licenses/>.
 
-use crate::{DStream, Serialise};
+use crate::{Dstream, Serialise};
 
 use std::fmt::{Debug, Formatter};
 use std::mem::size_of;
@@ -27,36 +27,40 @@ use std::mem::size_of;
 /// Byte stream for serialisation.
 ///
 /// The bytes themselves are contained by the type.
-/// The stream can
+/// The stream may be converted to [`Dstream`] using [`as_dstream`](Sstream::as_dstream)
 #[derive(Clone, Eq, PartialEq)]
-pub struct SStream(pub(in crate) Vec<u8>);
+pub struct Sstream(pub(in crate) Vec<u8>);
 
-impl SStream {
+impl Sstream {
 	/// Constructs a new, empty byte stream.
 	#[inline(always)]
 	#[must_use]
 	pub const fn new() -> Self { Self(Vec::new()) }
 
 	/// Extends the byte stream.
-	#[inline(always)]
 	pub fn append(&mut self, extra: &[u8]) {
 		self.0.extend(extra);
 	}
 
-	/// Converts the stream to a `DStream` object.
+	/// Extends the byte stream by a single byte.
+	pub fn append_byte(&mut self, extra: u8) {
+		self.0.push(extra);
+	}
+
+	/// Converts the stream to a `Dstream` object.
 	///
 	/// The returned object references the original stream.
 	#[inline(always)]
 	#[must_use]
-	pub fn as_d_stream(&self) -> DStream { DStream::new(&self.0) }
+	pub fn as_dstream(&self) -> Dstream { Dstream::new(&self.0) }
 }
 
-impl AsRef<[u8]> for SStream {
+impl AsRef<[u8]> for Sstream {
 	#[inline(always)]
 	fn as_ref(&self) -> &[u8] { self.0.as_ref() }
 }
 
-impl Debug for SStream {
+impl Debug for Sstream {
 	fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
 		write!(f, "[")?;
 
@@ -68,12 +72,12 @@ impl Debug for SStream {
 	}
 }
 
-impl Default for SStream {
+impl Default for Sstream {
 	#[inline(always)]
 	fn default() -> Self { Self::new() }
 }
 
-impl<T: Serialise> From<&T> for SStream {
+impl<T: Serialise> From<&T> for Sstream {
 	fn from(value: &T) -> Self {
 		let mut stream = Self(Vec::with_capacity(size_of::<T>()));
 		value.serialise(&mut stream);
@@ -82,7 +86,7 @@ impl<T: Serialise> From<&T> for SStream {
 	}
 }
 
-impl From<SStream> for Box<[u8]> {
+impl From<Sstream> for Box<[u8]> {
 	#[inline(always)]
-	fn from(value: SStream) -> Self { value.0.into_boxed_slice() }
+	fn from(value: Sstream) -> Self { value.0.into_boxed_slice() }
 }

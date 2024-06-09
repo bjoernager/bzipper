@@ -19,7 +19,7 @@
 // er General Public License along with bzipper. If
 // not, see <https://www.gnu.org/licenses/>.
 
-use crate::{Deserialise, DStream, FixedString};
+use crate::{Deserialise, Dstream, FixedString};
 
 #[test]
 fn test_deserialise() {
@@ -35,7 +35,7 @@ fn test_deserialise() {
 		0x00, 0x00, 0x01, 0x80,
 	];
 
-	let mut stream = DStream::from(&data);
+	let mut stream = Dstream::from(&data);
 
 	assert_eq!(
 		u8::deserialise(&mut stream).unwrap(),

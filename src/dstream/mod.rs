@@ -19,20 +19,22 @@
 // er General Public License along with bzipper. If
 // not, see <https://www.gnu.org/licenses/>.
 
-use crate::{Error, Result, SStream};
+use crate::{Error, Result, Sstream};
 
 use std::fmt::{Debug, Formatter};
 
 /// Byte stream for deserialisation.
 ///
-/// This type borrows a byte slice (hence [`new`](DStream::new)), keeping track internally of the used bytes.
+/// This type borrows a byte slice (hence [`new`](Dstream::new)), keeping track internally of the used bytes.
+///
+/// The stream may be converted to an [`Sstream`] using [`to_sstream`](Dstream::to_sstream).
 #[derive(Clone)]
-pub struct DStream<'a> {
+pub struct Dstream<'a> {
 	data: &'a [u8],
 	len:  usize,
 }
 
-impl<'a> DStream<'a> {
+impl<'a> Dstream<'a> {
 	/// Constructs a new byte stream.
 	#[inline(always)]
 	#[must_use]
@@ -47,7 +49,7 @@ impl<'a> DStream<'a> {
 	///
 	/// If the internal buffer doesn't hold at least the requested ammount of bytes, an [`EndOfDStream`](Error::EndOfDStream) error is returned.
 	pub fn take(&mut self, len: usize) -> Result<&[u8]> {
-		if self.len < len { return Err(Error::EndOfDStream { len: self.len, ok_len: len } ) }
+		if self.len < len { return Err(Error::EndOfDStream { req: len, rem: self.len } ) }
 
 		let start = self.data.len() - self.len;
 		let stop  = start + len;
@@ -55,6 +57,22 @@ impl<'a> DStream<'a> {
 		self.len -= len;
 
 		Ok(&self.data[start..stop])
+	}
+
+	/// Takes a single byte from the stream.
+	///
+	/// # Errors
+	///
+	/// If the internal buffer doesn't hold at least the requested ammount of bytes, an [`EndOfDStream`](Error::EndOfDStream) error is returned.
+	pub fn take_byte(&mut self) -> Result<u8> {
+		const LEN: usize = 0x1;
+
+		if self.len < LEN { return Err(Error::EndOfDStream { req: LEN, rem: self.len } ) }
+
+		self.len -= LEN;
+
+		let index = self.data.len() - self.len;
+		Ok(self.data[index])
 	}
 
 	/// Takes a slice of the remaining data.
@@ -66,17 +84,17 @@ impl<'a> DStream<'a> {
 		&self.data[start..stop]
 	}
 
-	/// Converts the stream to a `SStream` object.
+	/// Converts the stream to a `Sstream` object.
 	///
 	/// The returned object owns a copy of the remaining data.
 	#[inline(always)]
 	#[must_use]
-	pub fn to_s_stream(&self) -> SStream {
-		SStream(self.as_slice().to_vec())
+	pub fn to_sstream(&self) -> Sstream {
+		Sstream(self.as_slice().to_vec())
 	}
 }
 
-impl Debug for DStream<'_> {
+impl Debug for Dstream<'_> {
 	fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
 		write!(f, "[")?;
 
@@ -88,10 +106,10 @@ impl Debug for DStream<'_> {
 	}
 }
 
-impl<'a> From<&'a [u8]> for DStream<'a> {
+impl<'a> From<&'a [u8]> for Dstream<'a> {
 	fn from(value: &'a [u8]) -> Self { Self::new(value) }
 }
 
-impl<'a, const N: usize> From<&'a [u8; N]> for DStream<'a> {
+impl<'a, const N: usize> From<&'a [u8; N]> for Dstream<'a> {
 	fn from(value: &'a [u8; N]) -> Self { Self::new(value) }
 }

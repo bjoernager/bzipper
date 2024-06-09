@@ -22,7 +22,7 @@
 #[cfg(test)]
 mod test;
 
-use crate::{DStream, Error};
+use crate::{Dstream, Error, Serialise};
 
 use std::convert::Infallible;
 use std::error::Error as StdError;
@@ -30,15 +30,18 @@ use std::mem::size_of;
 use std::num::NonZero;
 
 /// Denotes a type capable of being deserialised.
-pub trait Deserialise: Sized {
+pub trait Deserialise: Serialise + Sized {
 	type Error;
 
 	/// Deserialises the byte stream to an object.
 	///
+	/// This function should not take *more* bytes than specified by [`SERIALISE_LIMIT`](Serialise::SERIALISE_LIMIT).
+	/// Doing so is considered a logic error.
+	///
 	/// # Errors
 	///
 	/// If deserialisation failed, e.g. by an invalid value being found, an error is returned.
-	fn deserialise(stream: &mut DStream) -> Result<Self, Self::Error>;
+	fn deserialise(stream: &mut Dstream) -> Result<Self, Self::Error>;
 }
 
 macro_rules! impl_float {
@@ -46,7 +49,7 @@ macro_rules! impl_float {
 		impl Deserialise for $type {
 			type Error = Error;
 
-			fn deserialise(stream: &mut DStream) -> Result<Self, Self::Error> {
+			fn deserialise(stream: &mut Dstream) -> Result<Self, Self::Error> {
 				let data = stream
 					.take(size_of::<Self>())?
 					.try_into()
@@ -63,7 +66,7 @@ macro_rules! impl_int {
 		impl Deserialise for $type {
 			type Error = Error;
 
-			fn deserialise(stream: &mut DStream) -> Result<Self, Self::Error> {
+			fn deserialise(stream: &mut Dstream) -> Result<Self, Self::Error> {
 				let data = stream
 					.take(size_of::<Self>())?
 					.try_into()
@@ -76,7 +79,7 @@ macro_rules! impl_int {
 		impl Deserialise for NonZero<$type> {
 			type Error = Error;
 
-			fn deserialise(stream: &mut DStream) -> Result<Self, Self::Error> {
+			fn deserialise(stream: &mut Dstream) -> Result<Self, Self::Error> {
 				let value = <$type>::deserialise(stream)?;
 
 				NonZero::new(value)
@@ -92,7 +95,7 @@ where
 	T1: Deserialise<Error: StdError + 'static>, {
 	type Error = Box<dyn StdError>;
 
-	fn deserialise(stream: &mut DStream) -> Result<Self, Self::Error> {
+	fn deserialise(stream: &mut Dstream) -> Result<Self, Self::Error> {
 		Ok((
 			Deserialise::deserialise(stream)?,
 			Deserialise::deserialise(stream)?,
@@ -107,7 +110,7 @@ where
 	T2: Deserialise<Error: StdError + 'static>, {
 	type Error = Box<dyn StdError>;
 
-	fn deserialise(stream: &mut DStream) -> Result<Self, Self::Error> {
+	fn deserialise(stream: &mut Dstream) -> Result<Self, Self::Error> {
 		Ok((
 			Deserialise::deserialise(stream)?,
 			Deserialise::deserialise(stream)?,
@@ -124,7 +127,7 @@ where
 	T3: Deserialise<Error: StdError + 'static>, {
 	type Error = Box<dyn StdError>;
 
-	fn deserialise(stream: &mut DStream) -> Result<Self, Self::Error> {
+	fn deserialise(stream: &mut Dstream) -> Result<Self, Self::Error> {
 		Ok((
 			Deserialise::deserialise(stream)?,
 			Deserialise::deserialise(stream)?,
@@ -143,7 +146,7 @@ where
 	T4: Deserialise<Error: StdError + 'static>, {
 	type Error = Box<dyn StdError>;
 
-	fn deserialise(stream: &mut DStream) -> Result<Self, Self::Error> {
+	fn deserialise(stream: &mut Dstream) -> Result<Self, Self::Error> {
 		Ok((
 			Deserialise::deserialise(stream)?,
 			Deserialise::deserialise(stream)?,
@@ -164,7 +167,7 @@ where
 	T5: Deserialise<Error: StdError + 'static>, {
 	type Error = Box<dyn StdError>;
 
-	fn deserialise(stream: &mut DStream) -> Result<Self, Self::Error> {
+	fn deserialise(stream: &mut Dstream) -> Result<Self, Self::Error> {
 		Ok((
 			Deserialise::deserialise(stream)?,
 			Deserialise::deserialise(stream)?,
@@ -187,7 +190,7 @@ where
 	T6: Deserialise<Error: StdError + 'static>, {
 	type Error = Box<dyn StdError>;
 
-	fn deserialise(stream: &mut DStream) -> Result<Self, Self::Error> {
+	fn deserialise(stream: &mut Dstream) -> Result<Self, Self::Error> {
 		Ok((
 			Deserialise::deserialise(stream)?,
 			Deserialise::deserialise(stream)?,
@@ -212,7 +215,7 @@ where
 	T7: Deserialise<Error: StdError + 'static>, {
 	type Error = Box<dyn StdError>;
 
-	fn deserialise(stream: &mut DStream) -> Result<Self, Self::Error> {
+	fn deserialise(stream: &mut Dstream) -> Result<Self, Self::Error> {
 		Ok((
 			Deserialise::deserialise(stream)?,
 			Deserialise::deserialise(stream)?,
@@ -239,7 +242,7 @@ where
 	T8: Deserialise<Error: StdError + 'static>, {
 	type Error = Box<dyn StdError>;
 
-	fn deserialise(stream: &mut DStream) -> Result<Self, Self::Error> {
+	fn deserialise(stream: &mut Dstream) -> Result<Self, Self::Error> {
 		Ok((
 			Deserialise::deserialise(stream)?,
 			Deserialise::deserialise(stream)?,
@@ -268,7 +271,7 @@ where
 	T9: Deserialise<Error: StdError + 'static>, {
 	type Error = Box<dyn StdError>;
 
-	fn deserialise(stream: &mut DStream) -> Result<Self, Self::Error> {
+	fn deserialise(stream: &mut Dstream) -> Result<Self, Self::Error> {
 		Ok((
 			Deserialise::deserialise(stream)?,
 			Deserialise::deserialise(stream)?,
@@ -299,7 +302,7 @@ where
 	T10: Deserialise<Error: StdError + 'static>, {
 	type Error = Box<dyn StdError>;
 
-	fn deserialise(stream: &mut DStream) -> Result<Self, Self::Error> {
+	fn deserialise(stream: &mut Dstream) -> Result<Self, Self::Error> {
 		Ok((
 			Deserialise::deserialise(stream)?,
 			Deserialise::deserialise(stream)?,
@@ -332,7 +335,7 @@ where
 	T11: Deserialise<Error: StdError + 'static>, {
 	type Error = Box<dyn StdError>;
 
-	fn deserialise(stream: &mut DStream) -> Result<Self, Self::Error> {
+	fn deserialise(stream: &mut Dstream) -> Result<Self, Self::Error> {
 		Ok((
 			Deserialise::deserialise(stream)?,
 			Deserialise::deserialise(stream)?,
@@ -353,9 +356,9 @@ where
 impl<T: Deserialise<Error: StdError + 'static>, const N: usize> Deserialise for [T; N] {
 	type Error = Box<dyn StdError>;
 
-	fn deserialise(stream: &mut DStream) -> Result<Self, Self::Error> {
+	fn deserialise(stream: &mut Dstream) -> Result<Self, Self::Error> {
 		let len = usize::try_from(u64::deserialise(stream)?).unwrap();
-		if len != N { return Err(Box::new(Error::ArrayLengthMismatch { len, ok_len: N })) };
+		if len != N { return Err(Box::new(Error::ArrayTooShort { req: len, len: N })) };
 
 		let mut buf = Vec::with_capacity(len);
 		for _ in 0x0..len { buf.push(Deserialise::deserialise(stream)?); }
@@ -367,15 +370,15 @@ impl<T: Deserialise<Error: StdError + 'static>, const N: usize> Deserialise for 
 }
 
 impl Deserialise for () {
-	type Error = Error;
+	type Error = Infallible;
 
-	fn deserialise(_stream: &mut DStream) -> Result<Self, Self::Error> { Ok(()) }
+	fn deserialise(_stream: &mut Dstream) -> Result<Self, Self::Error> { Ok(()) }
 }
 
 impl Deserialise for bool {
 	type Error = Error;
 
-	fn deserialise(stream: &mut DStream) -> Result<Self, Self::Error> {
+	fn deserialise(stream: &mut Dstream) -> Result<Self, Self::Error> {
 		let value = u8::deserialise(stream)?;
 
 		match value {
@@ -389,7 +392,7 @@ impl Deserialise for bool {
 impl Deserialise for char {
 	type Error = Error;
 
-	fn deserialise(stream: &mut DStream) -> Result<Self, Self::Error> {
+	fn deserialise(stream: &mut Dstream) -> Result<Self, Self::Error> {
 		let value = u32::deserialise(stream)?;
 
 		Self::from_u32(value)
@@ -398,15 +401,15 @@ impl Deserialise for char {
 }
 
 impl Deserialise for Infallible {
-	type Error = Error;
+	type Error = Self;
 
-	fn deserialise(_stream: &mut DStream) -> Result<Self, Self::Error> { unreachable!() }
+	fn deserialise(_stream: &mut Dstream) -> Result<Self, Self::Error> { unreachable!() }
 }
 
 impl<T: Deserialise<Error: StdError + 'static>> Deserialise for Option<T> {
 	type Error = Box<dyn StdError>;
 
-	fn deserialise(stream: &mut DStream) -> Result<Self, Self::Error> {
+	fn deserialise(stream: &mut Dstream) -> Result<Self, Self::Error> {
 		let sign = bool::deserialise(stream)?;
 
 		if sign {
@@ -423,7 +426,7 @@ where
 	<E as Deserialise>::Error: StdError + 'static, {
 	type Error = Box<dyn StdError>;
 
-	fn deserialise(stream: &mut DStream) -> Result<Self, Self::Error> {
+	fn deserialise(stream: &mut Dstream) -> Result<Self, Self::Error> {
 		let sign = bool::deserialise(stream)?;
 
 		let value = if sign {

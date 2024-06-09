@@ -19,8 +19,6 @@
 // er General Public License along with bzipper. If
 // not, see <https://www.gnu.org/licenses/>.
 
-//! Error handling.
-
 use std::error::Error as StdError;
 use std::fmt::{Display, Formatter};
 use std::str::Utf8Error;
@@ -30,22 +28,28 @@ pub type Result<T> = std::result::Result<T, Error>;
 
 /// Denotes an error.
 ///
-/// These variants are used when a deserialisation fails.
+/// These variants are used when deserialisation fails.
 /// Serialisations are assumed infallible.
 #[derive(Debug)]
 pub enum Error {
-	ArrayLengthMismatch { len: usize, ok_len: usize },
+	/// An array could not hold the requested ammount of elements.
+	ArrayTooShort { req: usize, len: usize },
 
-	EndOfDStream { len: usize, ok_len: usize },
+	/// A string encountered an invalid UTF-8 sequence.
+	BadString { source: Utf8Error },
 
-	FixedStringTooShort { len: usize, s: String },
+	/// Bytes were requested on an empty stream.
+	EndOfDStream { req: usize, rem: usize },
 
+	/// A boolean encountered a value outside (0) and (1).
 	InvalidBoolean { value: u8 },
 
+	/// An invalid code point was encountered.
+	///
+	/// This includes surrogate points in the inclusive range `U+D800` to `U+DFFF`, as well as values larger than `U+10FFFF`.
 	InvalidCodePoint { value: u32 },
 
-	InvalidUtf8 { source: Utf8Error },
-
+	/// A non-zero integer encountered the value (0).
 	NullInteger,
 }
 
@@ -54,16 +58,16 @@ impl Display for Error {
 		use Error::*;
 
 		match *self {
-			ArrayLengthMismatch { len, ok_len } => {
-				write!(f, "expected array of length ({ok_len}) but got ({len}) elements")
+			ArrayTooShort { req, len } => {
+				write!(f, "array of ({len}) element(s) cannot hold ({req})")
 			},
 
-			EndOfDStream { len, ok_len } => {
-				write!(f, "({ok_len}) byte(s) were requested but only ({len}) byte(s) were left")
+			BadString { ref source } =>{
+				write!(f, "unable to parse utf8: \"{source}\"")
 			},
 
-			FixedStringTooShort { len, ref s } => {
-				write!(f, "fixed string with `N = {len}` cannot hold {s:?}")
+			EndOfDStream { req, rem } => {
+				write!(f, "({req}) byte(s) were requested but only ({rem}) byte(s) were left")
 			},
 
 			InvalidBoolean { value } => {
@@ -72,10 +76,6 @@ impl Display for Error {
 
 			InvalidCodePoint { value } => {
 				write!(f, "code point U+{value:04X} is not valid")
-			},
-
-			InvalidUtf8 { ref source } =>{
-				write!(f, "unable to parse utf8: \"{source}\"")
 			},
 
 			NullInteger => {
@@ -90,7 +90,7 @@ impl StdError for Error {
 		use Error::*;
 
 		match *self {
-			InvalidUtf8 { ref source } => Some(source),
+			BadString { ref source } => Some(source),
 
 			_ => None,
 		}

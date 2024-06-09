@@ -1,7 +1,7 @@
-[`bzipper`](https://crates.io/crates/bzipper) is a binary (de)serialiser.
+[`bzipper`](https://crates.io/crates/bzipper) is a binary (de)serialiser for the Rust language.
 
-Contrary to [Serde](https://crates.io/crates/serde/)/[Bincode](https://crates.io/crates/bincode/), the goal of this crate is to serialise data without inflating the resulting binary sequence.
-As such, one may consider this crate to be more low-level.
+Contrary to [Serde](https://crates.io/crates/serde/)/[Bincode](https://crates.io/crates/bincode/), the goal of this crate is to serialise data with a known size limit.
+Therefore, this crate may be more suited for networking or other cases where a fixed-sized buffer is needed.
 
 Keep in mind that this project is still work-in-progress.
 
