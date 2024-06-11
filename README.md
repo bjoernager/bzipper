@@ -1,4 +1,4 @@
-# 'bzipper`
+# `bzipper`
 
 [`bzipper`](https://crates.io/crates/bzipper) is a binary (de)serialiser for the Rust language.
 
@@ -8,6 +8,8 @@ Therefore, this crate may be more suited for networking or other cases where a f
 Keep in mind that this project is still work-in-progress.
 
 This crate does not require any dependencies at the moment.
+
+See [Docs.rs](https://docs.rs/bzipper/latest/bzipper/) for documentation.
 
 ## Data Model
 
