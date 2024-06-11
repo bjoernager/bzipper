@@ -1,0 +1,17 @@
+<svg height="96" width="96" xmlns="http://www.w3.org/2000/svg">
+	<!-- gradients: -->
+
+	<!-- clips: -->
+
+	<!-- masks: -->
+
+	<mask id="z">
+		<polyline fill="none" points="20,28 20,20 78,20 36.970562748,76" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="8" />
+		<polyline fill="none" points="76,68 76,76 20,76 59.029437252,20" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="8" />
+	</mask>
+
+	<!-- fills: -->
+
+	<rect fill="#FFFFFF" mask="" height="96" width="96" x="0" y="0" />
+	<rect fill="#B4202D" mask="url(#z)" height="96" width="96" x="0" y="0" />
+</svg>

@@ -22,20 +22,25 @@
 #[cfg(test)]
 mod test;
 
-use crate::{Dstream, Error, Serialise};
+use crate::{Error, Dstream};
 
-use std::convert::Infallible;
-use std::error::Error as StdError;
-use std::mem::size_of;
-use std::num::NonZero;
+use alloc::boxed::Box;
+use core::convert::Infallible;
+use core::error::Error as StdError;
+use core::mem::{MaybeUninit, size_of};
+use core::num::NonZero;
+use core::ptr::read;
 
-/// Denotes a type capable of being deserialised.
-pub trait Deserialise: Serialise + Sized {
+/// Types capable of being deserialised.
+pub trait Deserialise: Sized {
+	/// The error of deserialisation.
+	///
+	/// Use [`Infallible`] if **all** deserialisations are infallible, as is the case of zero-length types.
 	type Error;
 
 	/// Deserialises the byte stream to an object.
 	///
-	/// This function should not take *more* bytes than specified by [`SERIALISE_LIMIT`](Serialise::SERIALISE_LIMIT).
+	/// This function should **not** take more bytes than specified by [`T::SERIALISE_LIMIT`](crate::Serialise::SERIALISE_LIMIT).
 	/// Doing so is considered a logic error.
 	///
 	/// # Errors
@@ -75,7 +80,11 @@ macro_rules! impl_int {
 				Ok(Self::from_be_bytes(data))
 			}
 		}
+	};
+}
 
+macro_rules! impl_non_zero {
+	($type:ty) => {
 		impl Deserialise for NonZero<$type> {
 			type Error = Error;
 
@@ -353,19 +362,33 @@ where
 	}
 }
 
-impl<T: Deserialise<Error: StdError + 'static>, const N: usize> Deserialise for [T; N] {
+impl<T, const N: usize> Deserialise for [T; N]
+where
+	T: Default + Deserialise<Error: StdError + 'static>, {
 	type Error = Box<dyn StdError>;
 
 	fn deserialise(stream: &mut Dstream) -> Result<Self, Self::Error> {
-		let len = usize::try_from(u64::deserialise(stream)?).unwrap();
+		let len = usize::deserialise(stream)?;
+
 		if len != N { return Err(Box::new(Error::ArrayTooShort { req: len, len: N })) };
 
-		let mut buf = Vec::with_capacity(len);
-		for _ in 0x0..len { buf.push(Deserialise::deserialise(stream)?); }
+		let mut buf: [MaybeUninit<T>; N] = unsafe { MaybeUninit::uninit().assume_init() };
 
-		// If we had used the checked unwrap, we would also
-		// have to require `T: Debug`.
-		Ok(unsafe { buf.try_into().unwrap_unchecked() })
+		// Deserialise t
+		for item in buf.iter_mut().take(len) {
+			item.write(Deserialise::deserialise(stream)?);
+		}
+
+		for item in buf.iter_mut().skip(len) {
+			item.write(Default::default());
+		}
+
+		// This should be safe as `MaybeUninit<T>` is
+		// transparent to `T`. The original buffer is
+		// NOT dropped automatically, so we can just
+		// forget about it from this point on.
+		let buf = unsafe { read(core::ptr::from_ref(&buf).cast::<[T; N]>()) };
+		Ok(buf)
 	}
 }
 
@@ -406,6 +429,17 @@ impl Deserialise for Infallible {
 	fn deserialise(_stream: &mut Dstream) -> Result<Self, Self::Error> { unreachable!() }
 }
 
+impl Deserialise for isize {
+	type Error = Error;
+
+	fn deserialise(stream: &mut Dstream) -> Result<Self, Self::Error> {
+		let value = i16::deserialise(stream)?
+			.into();
+
+		Ok(value)
+	}
+}
+
 impl<T: Deserialise<Error: StdError + 'static>> Deserialise for Option<T> {
 	type Error = Box<dyn StdError>;
 
@@ -439,6 +473,17 @@ where
 	}
 }
 
+impl Deserialise for usize {
+	type Error = Error;
+
+	fn deserialise(stream: &mut Dstream) -> Result<Self, Self::Error> {
+		let value = u16::deserialise(stream)?
+			.into();
+
+		Ok(value)
+	}
+}
+
 impl_float!(f32);
 impl_float!(f64);
 
@@ -452,3 +497,16 @@ impl_int!(u16);
 impl_int!(u32);
 impl_int!(u64);
 impl_int!(u8);
+
+impl_non_zero!(i128);
+impl_non_zero!(i16);
+impl_non_zero!(i32);
+impl_non_zero!(i64);
+impl_non_zero!(i8);
+impl_non_zero!(isize);
+impl_non_zero!(u128);
+impl_non_zero!(u16);
+impl_non_zero!(u32);
+impl_non_zero!(u64);
+impl_non_zero!(u8);
+impl_non_zero!(usize);

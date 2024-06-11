@@ -31,10 +31,11 @@ use crate::{
 	Sstream,
 };
 
-use std::cmp::Ordering;
-use std::fmt::{Debug, Display, Formatter, Write};
-use std::ops::{Index, IndexMut};
-use std::str::FromStr;
+use alloc::string::String;
+use core::cmp::Ordering;
+use core::fmt::{Debug, Display, Formatter};
+use core::ops::{Index, IndexMut};
+use core::str::FromStr;
 
 /// Owned string with maximum size.
 ///
@@ -107,18 +108,18 @@ impl<const N: usize> FixedString<N> {
 
 	/// Returns an iterator to the contained characters.
 	#[inline(always)]
-	pub fn iter(&self) -> std::slice::Iter<'_, char> { self.buf[0x0..self.len].iter() }
+	pub fn iter(&self) -> core::slice::Iter<'_, char> { self.buf[0x0..self.len].iter() }
 
 	/// Returns a mutable iterator to the contained characters.
 	#[inline(always)]
-	pub fn iter_mut(&mut self) -> std::slice::IterMut<'_, char> { self.buf[0x0..self.len].iter_mut() }
+	pub fn iter_mut(&mut self) -> core::slice::IterMut<'_, char> { self.buf[0x0..self.len].iter_mut() }
 }
 
 impl<const N: usize> Debug for FixedString<N> {
-	fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
-		f.write_char('"')?;
+	fn fmt(&self, f: &mut Formatter) -> core::fmt::Result {
+		write!(f, "\"")?;
 		for c in self { write!(f, "{}", c.escape_debug())? }
-		f.write_char('"')?;
+		write!(f, "\"")?;
 
 		Ok(())
 	}
@@ -128,13 +129,14 @@ impl<const N: usize> Deserialise for FixedString<N> {
 	type Error = Error;
 
 	fn deserialise(stream: &mut Dstream) -> Result<Self, Self::Error> {
-		let len = usize::try_from(u64::deserialise(stream)?).unwrap();
-
+		let len = usize::deserialise(stream)?;
 		let data = stream.take(len)?;
-		let s = std::str::from_utf8(data)
+
+		let s = core::str::from_utf8(data)
 			.map_err(|e| Error::BadString { source: e })?;
 
 		let len = s.chars().count();
+
 		if len > N {
 			return Err(Error::ArrayTooShort { req: len, len: N });
 		}
@@ -157,7 +159,7 @@ impl<const N: usize> Default for FixedString<N> {
 }
 
 impl<const N: usize> Display for FixedString<N> {
-	fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
+	fn fmt(&self, f: &mut Formatter) -> core::fmt::Result {
 		for c in self { write!(f, "{c}")? }
 
 		Ok(())
@@ -207,7 +209,7 @@ impl<const N: usize> IntoIterator for FixedString<N> {
 impl<'a, const N: usize> IntoIterator for &'a FixedString<N> {
 	type Item = &'a char;
 
-	type IntoIter = std::slice::Iter<'a, char>;
+	type IntoIter = core::slice::Iter<'a, char>;
 
 	fn into_iter(self) -> Self::IntoIter { self.iter() }
 }
@@ -215,7 +217,7 @@ impl<'a, const N: usize> IntoIterator for &'a FixedString<N> {
 impl<'a, const N: usize> IntoIterator for &'a mut FixedString<N> {
 	type Item = &'a mut char;
 
-	type IntoIter = std::slice::IterMut<'a, char>;
+	type IntoIter = core::slice::IterMut<'a, char>;
 
 	fn into_iter(self) -> Self::IntoIter { self.iter_mut() }
 }
@@ -272,15 +274,19 @@ impl<const N: usize, const M: usize> PartialOrd<FixedString<M>> for FixedString<
 }
 
 impl<const N: usize> Serialise for FixedString<N> {
-	const SERIALISE_LIMIT: usize = 0x4 * N;
+	type Error = Error;
 
-	fn serialise(&self, stream: &mut Sstream) {
+	const SERIALISE_LIMIT: usize = N * 0x4;
+
+	fn serialise(&self, stream: &mut Sstream) -> Result<usize, Self::Error> {
+		let mut count = 0x0;
+
 		let s: String = self.iter().collect();
 
-		let len = u64::try_from(s.len()).unwrap();
+		count += s.len().serialise(stream)?;
+		count += stream.add(&s.into_bytes())?;
 
-		stream.append(&len.to_be_bytes());
-		stream.append(&s.into_bytes());
+		Ok(count)
 	}
 }
 

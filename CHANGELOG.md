@@ -1,4 +1,27 @@
-# 0.3.0
+# Changelog
+
+This is the changelog of `bzipper`.
+
+## 0.4.0
+
+* Add logo
+* Clean up code
+* Fix array deserialisation (require `Default`)
+* Bump minor
+* Update commenting
+* Make serialisations fallible
+* Impl `Serialise` and `Deserialise` for `usize` and `isize` (restrict to 16 bits)
+* Add new errors: `UsizeOutOfRange`, `IsizeOutOfRange`
+* Rework sstreams
+* Add buffer type
+* Fix serialisation of `Option<T>`
+* Disable `std`
+* Rename error: `EndOfDStream` -> `EndOfStream`
+* Update documentation
+* Update readme
+* Reformat changelog
+
+## 0.3.0
 
 * Bump minor
 * Document errors
@@ -17,7 +40,7 @@
 * Make `Deserialise` require `Serialise`
 * Fix copyright/license notice in `"src/serialise/test.rs"`
 
-# 0.2.0
+## 0.2.0
 
 * Clean up code
 * Implement `Ord` and `PartialOrd` for `FixedString`
@@ -27,7 +50,7 @@
 * Bump minor
 * Implement `Serialise` and `Deserialise` for tuples
 
-# 0.1.0
+## 0.1.0
 
 * Bump minor
 * Export all in crate root
@@ -37,17 +60,17 @@
 * Add `as_d_stream` method to `SStream`
 * Add `to_s_stream` and `as_slice` methods to `DStream`
 
-# 0.0.2
+## 0.0.2
 
 * Add license files
 
-# 0.0.1
+## 0.0.1
 
 * Fix copyright notices
 * Add license notices
 * Update readme
 
-# 0.0.0
+## 0.0.0
 
 * Add changelog
 * Fork from `backspace`

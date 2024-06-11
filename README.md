@@ -1,3 +1,5 @@
+# 'bzipper`
+
 [`bzipper`](https://crates.io/crates/bzipper) is a binary (de)serialiser for the Rust language.
 
 Contrary to [Serde](https://crates.io/crates/serde/)/[Bincode](https://crates.io/crates/bincode/), the goal of this crate is to serialise data with a known size limit.
@@ -7,7 +9,16 @@ Keep in mind that this project is still work-in-progress.
 
 This crate does not require any dependencies at the moment.
 
-# Copyright & Licensing
+## Data Model
+
+Most primitive types serialise losslessly, with the exception being `usize` and `isize`.
+These serialise as `u16` and `i16`, respectively, for portability reasons.
+
+Unsized types, such as `str` and slices, are not supported.
+Instead, array should be used.
+For strings, the `FixedString` type is also provided.
+
+## Copyright & Licensing
 
 Copyright 2024 Gabriel Bjørnager Jensen.
 

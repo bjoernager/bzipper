@@ -19,74 +19,85 @@
 // er General Public License along with bzipper. If
 // not, see <https://www.gnu.org/licenses/>.
 
-use crate::{Dstream, Serialise};
+use crate::{Error, Result};
 
-use std::fmt::{Debug, Formatter};
-use std::mem::size_of;
+use core::fmt::{Debug, Formatter};
 
 /// Byte stream for serialisation.
 ///
-/// The bytes themselves are contained by the type.
-/// The stream may be converted to [`Dstream`] using [`as_dstream`](Sstream::as_dstream)
-#[derive(Clone, Eq, PartialEq)]
-pub struct Sstream(pub(in crate) Vec<u8>);
+/// This type borrows a byte slice (hence [`new`](Sstream::new)), keeping track internally of the used bytes.
+#[derive(Eq, PartialEq)]
+pub struct Sstream<'a> {
+	data: &'a mut [u8],
+	len:  usize
+}
 
-impl Sstream {
-	/// Constructs a new, empty byte stream.
+impl<'a> Sstream<'a> {
+	/// Constructs a new byte stream.
+	///
+	/// If the borrowed slice already contains data, this may overwritten by subsequent serialisations.
 	#[inline(always)]
 	#[must_use]
-	pub const fn new() -> Self { Self(Vec::new()) }
+	pub fn new(data: &'a mut [u8]) -> Self { Self { data, len: 0x0 } }
 
 	/// Extends the byte stream.
-	pub fn append(&mut self, extra: &[u8]) {
-		self.0.extend(extra);
+	///
+	/// # Errors
+	///
+	/// If the stream cannot hold the requested bytes, an [`EndOfStream`](Error::EndOfStream) instance is returned.
+	pub fn add(&mut self, extra: &[u8]) -> Result<usize> {
+		let rem = self.data.len() - self.len;
+		let req = extra.len();
+
+		if rem.checked_sub(req).is_none() {
+			return Err(Error::EndOfStream { req, rem });
+		}
+
+		let start = self.len;
+		let stop  = self.len + req;
+
+		self.len += req;
+		self.data[start..stop].copy_from_slice(extra);
+
+		Ok(req)
 	}
 
 	/// Extends the byte stream by a single byte.
-	pub fn append_byte(&mut self, extra: u8) {
-		self.0.push(extra);
+	///
+	/// # Errors
+	///
+	/// If the stream cannot hold the byte, an [`EndOfStream`](Error::EndOfStream) instance is returned.
+	pub fn add_byte(&mut self, extra: u8) -> Result<usize> {
+		self.add(&[extra])
 	}
 
-	/// Converts the stream to a `Dstream` object.
+	/// Yields the length of the stream.
 	///
-	/// The returned object references the original stream.
+	/// That is, the amount of bytes written so far.
 	#[inline(always)]
 	#[must_use]
-	pub fn as_dstream(&self) -> Dstream { Dstream::new(&self.0) }
-}
+	pub const fn len(&self) -> usize { self.len }
 
-impl AsRef<[u8]> for Sstream {
+	/// Tests if the stream is empty.
 	#[inline(always)]
-	fn as_ref(&self) -> &[u8] { self.0.as_ref() }
+	#[must_use]
+	pub const fn is_empty(&self) -> bool { self.len == 0x0 }
+
+	/// Returns a slice to the stream contents.
+	///
+	/// This includes all previously written bytes.
+	#[inline(always)]
+	#[must_use]
+	pub fn as_slice(&self) -> &[u8] { &self.data[0x0..self.len] }
 }
 
-impl Debug for Sstream {
-	fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
-		write!(f, "[")?;
+impl AsRef<[u8]> for Sstream<'_> {
+	#[inline(always)]
+	fn as_ref(&self) -> &[u8] { self.as_slice() }
+}
 
-		for v in &self.0 { write!(f, "{v:#02X},")? };
-
-		write!(f, "]")?;
-
-		Ok(())
+impl Debug for Sstream<'_> {
+	fn fmt(&self, f: &mut Formatter) -> core::fmt::Result {
+		self.data.fmt(f)
 	}
-}
-
-impl Default for Sstream {
-	#[inline(always)]
-	fn default() -> Self { Self::new() }
-}
-
-impl<T: Serialise> From<&T> for Sstream {
-	fn from(value: &T) -> Self {
-		let mut stream = Self(Vec::with_capacity(size_of::<T>()));
-		value.serialise(&mut stream);
-
-		stream
-	}
-}
-
-impl From<Sstream> for Box<[u8]> {
-	#[inline(always)]
-	fn from(value: Sstream) -> Self { value.0.into_boxed_slice() }
 }

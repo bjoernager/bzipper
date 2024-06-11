@@ -19,12 +19,12 @@
 // er General Public License along with bzipper. If
 // not, see <https://www.gnu.org/licenses/>.
 
-use std::error::Error as StdError;
-use std::fmt::{Display, Formatter};
-use std::str::Utf8Error;
+use core::error::Error as StdError;
+use core::fmt::{Display, Formatter};
+use core::str::Utf8Error;
 
-/// Mapping of [`std::result::Result`].
-pub type Result<T> = std::result::Result<T, Error>;
+/// Mapping of [`core::result::Result`].
+pub type Result<T> = core::result::Result<T, Error>;
 
 /// Denotes an error.
 ///
@@ -32,14 +32,14 @@ pub type Result<T> = std::result::Result<T, Error>;
 /// Serialisations are assumed infallible.
 #[derive(Debug)]
 pub enum Error {
-	/// An array could not hold the requested ammount of elements.
+	/// An array could not hold the requested amount of elements.
 	ArrayTooShort { req: usize, len: usize },
 
 	/// A string encountered an invalid UTF-8 sequence.
 	BadString { source: Utf8Error },
 
 	/// Bytes were requested on an empty stream.
-	EndOfDStream { req: usize, rem: usize },
+	EndOfStream { req: usize, rem: usize },
 
 	/// A boolean encountered a value outside (0) and (1).
 	InvalidBoolean { value: u8 },
@@ -49,12 +49,18 @@ pub enum Error {
 	/// This includes surrogate points in the inclusive range `U+D800` to `U+DFFF`, as well as values larger than `U+10FFFF`.
 	InvalidCodePoint { value: u32 },
 
+	/// An `isize` value couldn't fit into (16) bits.
+	IsizeOutOfRange { value: isize },
+
 	/// A non-zero integer encountered the value (0).
 	NullInteger,
+
+	/// A `usize` value couldn't fit into (16) bits.
+	UsizeOutOfRange { value: usize },
 }
 
 impl Display for Error {
-	fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
+	fn fmt(&self, f: &mut Formatter) -> core::fmt::Result {
 		use Error::*;
 
 		match *self {
@@ -66,7 +72,7 @@ impl Display for Error {
 				write!(f, "unable to parse utf8: \"{source}\"")
 			},
 
-			EndOfDStream { req, rem } => {
+			EndOfStream { req, rem } => {
 				write!(f, "({req}) byte(s) were requested but only ({rem}) byte(s) were left")
 			},
 
@@ -78,8 +84,16 @@ impl Display for Error {
 				write!(f, "code point U+{value:04X} is not valid")
 			},
 
+			IsizeOutOfRange { value } => {
+				write!(f, "signed size value ({value}) cannot be serialised: must be in the range ({}) to ({})", i16::MIN, i16::MAX)
+			},
+
 			NullInteger => {
 				write!(f, "expected non-zero integer but got (0)")
+			},
+
+			UsizeOutOfRange { value } => {
+				write!(f, "unsigned size value ({value}) cannot be serialised: must be at most ({})", u16::MAX)
 			},
 		}
 	}

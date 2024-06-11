@@ -27,6 +27,19 @@
 //! Keep in mind that this project is still work-in-progress.
 //!
 //! This crate does not require any dependencies at the moment.
+//!
+//! # Data model
+//!
+//! Most primitive types serialise losslessly, with the exception being [`usize`] and [`isize`].
+//! These serialise as [`u16`] and [`i16`], respectively, for portability reasons.
+//!
+//! Unsized types, such as [`str`] and [slices](slice), are not supported.
+//! Instead, [arrays](array) should be used.
+//! For strings, the [`FixedString`] type is also provided.
+
+#![no_std]
+
+extern crate alloc;
 
 macro_rules! use_mod {
 	($vis:vis $name:ident) => {
@@ -36,6 +49,7 @@ macro_rules! use_mod {
 }
 pub(in crate) use use_mod;
 
+use_mod!(pub buffer);
 use_mod!(pub deserialise);
 use_mod!(pub dstream);
 use_mod!(pub error);

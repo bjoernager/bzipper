@@ -21,7 +21,7 @@
 
 use crate::FixedString;
 
-use std::cmp::Ordering;
+use core::cmp::Ordering;
 
 #[test]
 fn test_fixed_string() {

@@ -19,15 +19,13 @@
 // er General Public License along with bzipper. If
 // not, see <https://www.gnu.org/licenses/>.
 
-use crate::{Error, Result, Sstream};
+use crate::{Error, Result};
 
-use std::fmt::{Debug, Formatter};
+use core::fmt::{Debug, Formatter};
 
 /// Byte stream for deserialisation.
 ///
 /// This type borrows a byte slice (hence [`new`](Dstream::new)), keeping track internally of the used bytes.
-///
-/// The stream may be converted to an [`Sstream`] using [`to_sstream`](Dstream::to_sstream).
 #[derive(Clone)]
 pub struct Dstream<'a> {
 	data: &'a [u8],
@@ -47,15 +45,16 @@ impl<'a> Dstream<'a> {
 	///
 	/// # Errors
 	///
-	/// If the internal buffer doesn't hold at least the requested ammount of bytes, an [`EndOfDStream`](Error::EndOfDStream) error is returned.
-	pub fn take(&mut self, len: usize) -> Result<&[u8]> {
-		if self.len < len { return Err(Error::EndOfDStream { req: len, rem: self.len } ) }
+	/// If the internal buffer doesn't hold at least the requested amount of bytes, an [`EndOfStream`](Error::EndOfStream) error is returned.
+	pub fn take(&mut self, req: usize) -> Result<&[u8]> {
+		let rem = self.len;
 
-		let start = self.data.len() - self.len;
-		let stop  = start + len;
+		if rem < req { return Err(Error::EndOfStream { req, rem } ) }
 
-		self.len -= len;
+		let start = self.data.len() - rem;
+		let stop  = start + req;
 
+		self.len -= req;
 		Ok(&self.data[start..stop])
 	}
 
@@ -63,53 +62,25 @@ impl<'a> Dstream<'a> {
 	///
 	/// # Errors
 	///
-	/// If the internal buffer doesn't hold at least the requested ammount of bytes, an [`EndOfDStream`](Error::EndOfDStream) error is returned.
+	/// If the internal buffer doesn't hold at least the requested amount of bytes, an [`EndOfStream`](Error::EndOfStream) error is returned.
 	pub fn take_byte(&mut self) -> Result<u8> {
 		const LEN: usize = 0x1;
 
-		if self.len < LEN { return Err(Error::EndOfDStream { req: LEN, rem: self.len } ) }
+		if self.len < LEN { return Err(Error::EndOfStream { req: LEN, rem: self.len } ) }
 
 		self.len -= LEN;
 
 		let index = self.data.len() - self.len;
 		Ok(self.data[index])
 	}
-
-	/// Takes a slice of the remaining data.
-	#[must_use]
-	pub fn as_slice(&self) -> &[u8] {
-		let stop  = self.data.len();
-		let start = stop - self.len;
-
-		&self.data[start..stop]
-	}
-
-	/// Converts the stream to a `Sstream` object.
-	///
-	/// The returned object owns a copy of the remaining data.
-	#[inline(always)]
-	#[must_use]
-	pub fn to_sstream(&self) -> Sstream {
-		Sstream(self.as_slice().to_vec())
-	}
 }
 
 impl Debug for Dstream<'_> {
-	fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
-		write!(f, "[")?;
-
-		for v in self.as_slice() { write!(f, "{v:#02X},")? };
-
-		write!(f, "]")?;
-
-		Ok(())
+	fn fmt(&self, f: &mut Formatter) -> core::fmt::Result {
+		self.data.fmt(f)
 	}
 }
 
-impl<'a> From<&'a [u8]> for Dstream<'a> {
-	fn from(value: &'a [u8]) -> Self { Self::new(value) }
-}
-
-impl<'a, const N: usize> From<&'a [u8; N]> for Dstream<'a> {
-	fn from(value: &'a [u8; N]) -> Self { Self::new(value) }
+impl<'a, T: AsRef<[u8]>> From<&'a T> for Dstream<'a> {
+	fn from(value: &'a T) -> Self { Self::new(value) }
 }
