@@ -1,12 +1,12 @@
 [package]
 name          = "bzipper"
-version       = "0.4.1"
+version       = "0.4.2"
 authors       = ["Gabriel Bjørnager Jensen"]
 edition       = "2021"
 description   = "Binary (de)serialiser."
 documentation = "https://docs.rs/bzipper"
 readme        = "README.md"
-homepage      = "https://mandelbrot.dk/bzipper"
+homepage      = "https://achernar.dk/html/bzipper.html"
 repository    = "https://mandelbrot.dk/bzipper"
 license       = "LGPL-3.0-or-later"
 

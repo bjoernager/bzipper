@@ -2,6 +2,10 @@
 
 This is the changelog of `bzipper`.
 
+## 0.4.2
+
+* Update package metadata
+
 ## 0.4.1
 
 * Update readme
