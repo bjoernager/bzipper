@@ -1,6 +1,13 @@
 # Changelog
 
 This is the changelog of `bzipper`.
+See `"README.md"` for more information.
+
+## 0.4.3
+
+* Reformat changelog
+* Update logo
+* Add docs logo
 
 ## 0.4.2
 

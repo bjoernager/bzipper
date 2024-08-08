@@ -1,0 +1,11 @@
+<svg height="96" width="96" xmlns="http://www.w3.org/2000/svg">
+	<mask id="z">
+		<rect fill="white" height="100%" rx="8" width="100%" x="0" y="0" />
+
+		<polyline fill="none" points="20,28 20,20 76,20 36.970562748,76" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="8" />
+		<polyline fill="none" points="76,68 76,76 20,76 59.029437252,20" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="8" />
+	</mask>
+
+	<rect fill="#FFFFFF" height="100%" width="100%" x="0" y="0" />
+	<rect fill="#B4202D" height="100%" mask="url(#z)" width="100%" x="0" y="0" />
+</svg>

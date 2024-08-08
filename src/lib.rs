@@ -19,6 +19,8 @@
 // er General Public License along with bzipper. If
 // not, see <https://www.gnu.org/licenses/>.
 
+#![doc(html_logo_url = "https://gitlab.com/bjoernager/pollex/-/raw/master/bzipper-monochrome.svg?ref_type=heads")]
+
 //! Binary (de)serialisation.
 //!
 //! Contrary to [Serde](https://crates.io/crates/serde/)/[Bincode](https://crates.io/crates/bincode/), the goal of `bzipper` is to serialise with a known size constraint.
