@@ -19,7 +19,7 @@
 // er General Public License along with bzipper. If
 // not, see <https://www.gnu.org/licenses/>.
 
-#![doc(html_logo_url = "https://gitlab.com/bjoernager/pollex/-/raw/master/bzipper-monochrome.svg?ref_type=heads")]
+#![doc(html_logo_url = "https://gitlab.com/bjoernager/bzipper/-/raw/master/bzipper-monochrome.svg?ref_type=heads")]
 
 //! Binary (de)serialisation.
 //!
