@@ -34,10 +34,39 @@ use core::num::NonZero;
 pub trait Serialise: Sized {
 	/// The error of serialisation.
 	///
-	/// Use [`Infallible`] if **all** deserialisations are infallible, as is the case of zero-length types.
+	/// Use [`Infallible`] if **all** deserialisations are infallible, as is the case of zero-length types (such as [the unit type](unit)).
 	type Error;
 
 	/// The maximum amount of bytes that can result from serialisation.
+	///
+	/// Until derive macros are implemented, this value should be set to the sum of the members' own size limits (if chaining is used, that is):
+	///
+	/// ```
+	/// use bzipper::{Serialise, Sstream};
+	///
+	/// struct Foo {
+	///     bar: u16,
+	///     baz: f32,
+	/// }
+	///
+	/// impl Serialise for Foo {
+	///     type Error = bzipper::Error;
+	///
+	///     const SERIALISE_LIMIT: usize = u16::SERIALISE_LIMIT + f32::SERIALISE_LIMIT;
+	///
+	///     fn serialise(&self, stream: &mut Sstream) -> Result<usize, Self::Error> {
+	///         let mut count = 0x0;
+	///
+	///         // Serialise fields using chaining.
+	///         count += self.bar.serialise(stream)?;
+	///         count += self.baz.serialise(stream)?;
+	///
+	///         Ok(count)
+	///     }
+	/// }
+	/// ```
+	///
+	/// In the future, dervice macros will make manual chaining redundant.
 	const SERIALISE_LIMIT: usize;
 
 	/// Serialises `self` into a byte stream.
