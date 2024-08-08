@@ -3,6 +3,11 @@
 This is the changelog of `bzipper`.
 See `"README.md"` for more information.
 
+## 0.4.7
+
+* Extensively elaborate docs
+* Update readme
+
 ## 0.4.6
 
 * Fix docs logo (again)
