@@ -20,7 +20,7 @@ alloc = []
 std   = []
 
 [dependencies]
-bzipper_macros = { path = "../bzipper_macros" }
+bzipper_macros = { path = "../bzipper_macros", version = "*"}
 
 [lints]
 workspace = true

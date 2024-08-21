@@ -3,6 +3,10 @@
 This is the changelog of `bzipper`.
 See `"README.md"` for more information.
 
+## 0.5.1
+
+* Specify `bzipper_macros` version
+
 ## 0.5.0
 
 * Bump minor version
