@@ -1,9 +1,9 @@
 [package]
 name          = "bzipper_macros"
+version       = "0.5.2"
 edition       = "2021"
 documentation = "https://docs.rs/bzipper_macros/"
 
-version.workspace     = true
 authors.workspace     = true
 description.workspace = true
 readme.workspace      = true
