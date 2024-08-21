@@ -1,0 +1,26 @@
+[package]
+name          = "bzipper"
+edition       = "2021"
+rust-version  = "1.81"
+documentation = "https://docs.rs/bzipper/"
+
+version.workspace     = true
+authors.workspace     = true
+description.workspace = true
+readme.workspace      = true
+homepage.workspace    = true
+repository.workspace  = true
+license.workspace     = true
+
+[package.metadata.docs.rs]
+all-features = true
+
+[features]
+alloc = []
+std   = []
+
+[dependencies]
+bzipper_macros = { path = "../bzipper_macros" }
+
+[lints]
+workspace = true

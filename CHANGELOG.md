@@ -3,6 +3,29 @@
 This is the changelog of `bzipper`.
 See `"README.md"` for more information.
 
+## 0.5.0
+
+* Bump minor version
+* Add macros crate
+* Add derive macros
+* Update package metadata
+* Update readme
+* Expand docs
+* Require fixed size (de)serialisations
+* Add more error variants
+* Require `bzipper::Error` for (de)serialisation
+* Reworks streams
+* Remove `Buffer`
+* Rework `FixedString`
+* Serialise `usize` and `isize` as `u32` and `i32`, respectively
+* Rework arrays (de)serialisation
+* Fix `Result` serialisations
+* Add new logo
+* Add features `alloc` and `std`
+* Specify rustc version
+* Rename `FixedStringIter` to `FixedIter`
+* Implement `Serialise` and `Deserialise` for single tuples and `PhantomData`
+
 ## 0.4.7
 
 * Extensively elaborate docs

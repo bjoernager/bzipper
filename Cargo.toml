@@ -1,16 +1,17 @@
-[package]
-name          = "bzipper"
-version       = "0.4.7"
-authors       = ["Gabriel Bjørnager Jensen"]
-edition       = "2021"
-description   = "Binary (de)serialiser."
-documentation = "https://docs.rs/bzipper"
-readme        = "README.md"
-homepage      = "https://achernar.dk/html/bzipper.html"
-repository    = "https://mandelbrot.dk/bzipper"
-license       = "LGPL-3.0-or-later"
+[workspace]
+members  = ["bzipper", "bzipper_macros"]
+resolver = "2"
 
-[lints.clippy]
+[workspace.package]
+version     = "0.5.0"
+authors     = ["Gabriel Bjørnager Jensen"]
+description = "Binary (de)serialiser."
+readme      = "README.md"
+homepage    = "https://achernar.dk/index.php?p=bzipper"
+repository  = "https://mandelbrot.dk/bzipper/"
+license     = "LGPL-3.0-or-later"
+
+[workspace.lints.clippy]
 as_ptr_cast_mut                    = "forbid"
 as_underscore                      = "warn"
 assertions_on_result_states        = "warn"

@@ -19,14 +19,16 @@
 // er General Public License along with bzipper. If
 // not, see <https://www.gnu.org/licenses/>.
 
-use core::error::Error as StdError;
 use core::fmt::{Display, Formatter};
 use core::str::Utf8Error;
+
+#[cfg(feature = "alloc")]
+use alloc::boxed::Box;
 
 /// Mapping of [`core::result::Result`].
 pub type Result<T> = core::result::Result<T, Error>;
 
-/// Denotes an error.
+/// (De)serialisation failures.
 ///
 /// These variants are used when deserialisation fails.
 /// Serialisations are assumed infallible.
@@ -38,10 +40,17 @@ pub enum Error {
 	/// A string encountered an invalid UTF-8 sequence.
 	BadString { source: Utf8Error },
 
+	/// An implementor-defined error.
+	///
+	/// This is mainly useful if none of the predefined errors are appropriate.
+	#[cfg(feature = "alloc")]
+	#[cfg_attr(doc, doc(cfg(feature = "alloc")))]
+	CustomError { source: Box<dyn core::error::Error> },
+
 	/// Bytes were requested on an empty stream.
 	EndOfStream { req: usize, rem: usize },
 
-	/// A boolean encountered a value outside (0) and (1).
+	/// A boolean encountered a value outside `0` and `1`.
 	InvalidBoolean { value: u8 },
 
 	/// An invalid code point was encountered.
@@ -49,13 +58,16 @@ pub enum Error {
 	/// This includes surrogate points in the inclusive range `U+D800` to `U+DFFF`, as well as values larger than `U+10FFFF`.
 	InvalidCodePoint { value: u32 },
 
-	/// An `isize` value couldn't fit into (16) bits.
+	/// An invalid enumeration descriminant was provided.
+	InvalidDiscriminant { value: u32 },
+
+	/// An `isize` value couldn't fit into `16` bits.
 	IsizeOutOfRange { value: isize },
 
-	/// A non-zero integer encountered the value (0).
+	/// A non-zero integer encountered the value `0`.
 	NullInteger,
 
-	/// A `usize` value couldn't fit into (16) bits.
+	/// A `usize` value couldn't fit into `16` bits.
 	UsizeOutOfRange { value: usize },
 }
 
@@ -64,47 +76,49 @@ impl Display for Error {
 		use Error::*;
 
 		match *self {
-			ArrayTooShort { req, len } => {
-				write!(f, "array of ({len}) element(s) cannot hold ({req})")
-			},
+			ArrayTooShort { req, len }
+			=> write!(f, "array of ({len}) element(s) cannot hold ({req})"),
 
-			BadString { ref source } =>{
-				write!(f, "unable to parse utf8: \"{source}\"")
-			},
+			BadString { ref source }
+			=> write!(f, "unable to parse utf8: \"{source}\""),
 
-			EndOfStream { req, rem } => {
-				write!(f, "({req}) byte(s) were requested but only ({rem}) byte(s) were left")
-			},
+			#[cfg(feature = "alloc")]
+			CustomError { ref source }
+			=> write!(f, "{source}"),
 
-			InvalidBoolean { value } => {
-				write!(f, "expected boolean but got {value:#02X}")
-			},
+			EndOfStream { req, rem }
+			=> write!(f, "({req}) byte(s) were requested but only ({rem}) byte(s) were left"),
 
-			InvalidCodePoint { value } => {
-				write!(f, "code point U+{value:04X} is not valid")
-			},
+			InvalidBoolean { value }
+			=> write!(f, "expected boolean but got {value:#02X}"),
 
-			IsizeOutOfRange { value } => {
-				write!(f, "signed size value ({value}) cannot be serialised: must be in the range ({}) to ({})", i16::MIN, i16::MAX)
-			},
+			InvalidCodePoint { value }
+			=> write!(f, "code point U+{value:04X} is not valid"),
 
-			NullInteger => {
-				write!(f, "expected non-zero integer but got (0)")
-			},
+			InvalidDiscriminant { value }
+			=> write!(f, "discriminant ({value}) is not valid for the given enumeration"),
 
-			UsizeOutOfRange { value } => {
-				write!(f, "unsigned size value ({value}) cannot be serialised: must be at most ({})", u16::MAX)
-			},
+			IsizeOutOfRange { value }
+			=> write!(f, "signed size value ({value}) cannot be serialised: must be in the range ({}) to ({})", i16::MIN, i16::MAX),
+
+			NullInteger
+			=> write!(f, "expected non-zero integer but got (0)"),
+
+			UsizeOutOfRange { value }
+			=> write!(f, "unsigned size value ({value}) cannot be serialised: must be at most ({})", u16::MAX),
 		}
 	}
 }
 
-impl StdError for Error {
-	fn source(&self) -> Option<&(dyn StdError + 'static)> {
+impl core::error::Error for Error {
+	fn source(&self) -> Option<&(dyn core::error::Error + 'static)> {
 		use Error::*;
 
 		match *self {
 			BadString { ref source } => Some(source),
+
+			#[cfg(feature = "alloc")]
+			CustomError { ref source } => Some(source.as_ref()),
 
 			_ => None,
 		}

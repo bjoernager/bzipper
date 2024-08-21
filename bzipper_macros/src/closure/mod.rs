@@ -19,25 +19,23 @@
 // er General Public License along with bzipper. If
 // not, see <https://www.gnu.org/licenses/>.
 
-/// Iterator to a fixed string.
-pub struct FixedStringIter<const N: usize> {
-	pub(in crate) buf: [char; N],
-	pub(in crate) len: usize,
+use proc_macro2::TokenStream;
+use quote::ToTokens;
+use syn::{Ident, Token};
 
-	pub(in crate) pos: Option<usize>,
+/// A field capture list.
+///
+/// This is used for capturing fields of structures or enumeration variants.
+#[derive(Clone)]
+pub struct Capture {
+	pub ref_token: Token![ref],
+	pub ident:     Ident,
 }
 
-impl<const N: usize> Iterator for FixedStringIter<N> {
-	type Item = char;
-
-	fn next(&mut self) -> Option<Self::Item> {
-		let pos = self.pos.as_mut()?;
-
-		if *pos >= self.len { return None };
-
-		let item = self.buf[*pos];
-		*pos += 0x1;
-
-		Some(item)
+impl ToTokens for Capture {
+	#[inline(always)]
+	fn to_tokens(&self, tokens: &mut TokenStream) {
+		self.ref_token.to_tokens(tokens);
+		self.ident.to_tokens(tokens);
 	}
 }

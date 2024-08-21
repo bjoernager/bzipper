@@ -1,9 +1,15 @@
 <svg height="96" width="96" xmlns="http://www.w3.org/2000/svg">
 	<mask id="z">
-		<polyline fill="none" points="20,28 20,20 76,20 36.970562748,76" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="8" />
-		<polyline fill="none" points="76,68 76,76 20,76 59.029437252,20" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="8" />
+		<rect fill="white" height="24" width="32" x="16" y="24" />
+		<circle cx="48" cy="48" fill="black" r="16" />
+
+		<polygon fill="white" points="20,16 76,16 80,20 80,80 16,80 64,32 16,32 16,20" />
+		<circle cx="20" cy="20" fill="white" r="4" />
+		<circle cx="76" cy="20" fill="white" r="4" />
+
+		<circle cx="80" cy="80" fill="black" r="16" />
 	</mask>
 
-	<rect fill="#FFFFFF" height="100%" width="100%" x="0" y="0" />
-	<rect fill="#B4202D" height="100%" mask="url(#z)" width="100%" x="0" y="0" />
+	<rect fill="#526F03" height="100%" width="100%" x="0" y="0" />
+	<rect fill="#FFFFFF" height="100%" mask="url(#z)" width="100%" x="0" y="0" />
 </svg>
