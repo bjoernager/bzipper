@@ -1,6 +1,6 @@
 # bzipper
 
-[`bzipper`](https://crates.io/crates/bzipper) is a binary (de)serialiser for the Rust language.
+[bzipper](https://crates.io/crates/bzipper/) is a binary (de)serialiser for the Rust language.
 
 Contrary to [Serde](https://crates.io/crates/serde/)/[Bincode](https://crates.io/crates/bincode/), the goal of bzipper is to serialise with a known size constraint.
 Therefore, this crate may be more suited for networking or other cases where a fixed-sized buffer is needed.
@@ -60,7 +60,7 @@ assert_eq!(buf, [0x00, 0x00, 0x04, 0x16]);
 
 The only special requirement of the `serialise` method is that the provided byte slice has an element count of exactly `SERIALISED_SIZE`.
 
-We can also use streams to *chain* multiple elements together.
+We can also use streams to *chain* multiple elements together:
 
 ```rs
 use bzipper::Serialise;

@@ -200,3 +200,6 @@ use_mod!(pub fixed_iter);
 use_mod!(pub fixed_string);
 use_mod!(pub serialise);
 use_mod!(pub sstream);
+
+#[cfg(feature = "alloc")]
+use_mod!(pub buffer);

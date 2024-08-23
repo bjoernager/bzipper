@@ -40,4 +40,8 @@ fn test_fixed_string() {
 	assert_eq!(str2.partial_cmp(&str0), Some(Ordering::Less));
 	assert_eq!(str2.partial_cmp(&str1), Some(Ordering::Less));
 	assert_eq!(str2.partial_cmp(&str2), Some(Ordering::Equal));
+
+	assert_eq!(str0, "Hello there!");
+	assert_eq!(str1, "MEIN_GRO\u{1E9E}_GOTT");
+	assert_eq!(str2, "Hello");
 }

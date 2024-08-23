@@ -1,7 +1,17 @@
 # Changelog
 
-This is the changelog of `bzipper`.
+This is the changelog of bzipper.
 See `"README.md"` for more information.
+
+## 0.6.0
+
+* Update readme
+* Add `Buffer` type
+* Bump minor version
+* Implement `PartialEq<&[char]>` for `FixedString`
+* Update tests
+* Implement `PartialOrd<&[char]>` and `PartialOrd<&str>` for `FixedString`
+* Remove custom methods `get`, `get_unchecked`, `get_mut`, and  `get_unchecked_mut`, `iter`, and `iter_mut` from `FixedString`
 
 ## 0.5.2
 

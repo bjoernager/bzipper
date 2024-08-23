@@ -168,42 +168,6 @@ impl<const N: usize> FixedString<N> {
 		self.len = len;
 	}
 
-	/// Borrows characters at the specified index.
-	///
-	/// If no element can be retrieved using the given index, [`None`] is returned instead.
-	#[inline(always)]
-	#[must_use]
-	pub fn get<I: SliceIndex<[char]>>(&self, index: I) -> Option<&I::Output> { self.buf.get(index) }
-
-	/// Borrows characters at the specified index *without* checking bounds.
-	///
-	/// For performing a similar operation *with* bounds checks, see [`get`](Self::get).
-	///
-	/// # Safety
-	///
-	/// If the given index points out of the bounds of the string, behaviour is undefined.
-	#[inline(always)]
-	#[must_use]
-	pub unsafe fn get_unchecked<I: SliceIndex<[char]>>(&self, index: I) -> &I::Output { self.buf.get_unchecked(index) }
-
-	/// Mutably borrows characters at the specified index.
-	///
-	/// If no element can be retrieved using the given index, [`None`] is returned instead.
-	#[inline(always)]
-	#[must_use]
-	pub fn get_mut<I: SliceIndex<[char]>>(&mut self, index: I) -> Option<&mut I::Output> { self.buf.get_mut(index) }
-
-	/// Mutably borrows characters at the specified index *without* checking bounds.
-	///
-	/// For performing a similar operation *with* bounds checks, see [`get_mut`](Self::get_mut)
-	///
-	/// # Safety
-	///
-	/// If the given index points out of the bounds of the string, behaviour is undefined.
-	#[inline(always)]
-	#[must_use]
-	pub unsafe fn get_unchecked_mut<I: SliceIndex<[char]>>(&mut self, index: I) -> &I::Output { self.buf.get_unchecked_mut(index) }
-
 	/// Pushes a character into the string.
 	///
 	/// The internal length is updated accordingly.
@@ -235,20 +199,6 @@ impl<const N: usize> FixedString<N> {
 				c
 			})
 	}
-
-	/// Returns an iterator to the contained characters.
-	///
-	/// This iterator only covers "used" character.
-	/// See [`iter_mut`](Self::iter_mut) for borrowing the entire buffer.
-	#[inline(always)]
-	pub fn iter(&self) -> core::slice::Iter<'_, char> { self.as_slice().iter() }
-
-	/// Returns a mutable iterator to the contained characters.
-	///
-	/// This iterator covers the entire internal buffer.
-	/// See [`iter`](Self::iter) for borrowing only "used" characters.
-	#[inline(always)]
-	pub fn iter_mut(&mut self) -> core::slice::IterMut<'_, char> { self.as_mut_slice().iter_mut() }
 }
 
 impl<const N: usize> AsMut<[char]> for FixedString<N> {
@@ -377,16 +327,13 @@ impl<const N: usize> Ord for FixedString<N> {
 }
 
 impl<const N: usize, const M: usize> PartialEq<FixedString<M>> for FixedString<N> {
-	#[inline]
-	fn eq(&self, other: &FixedString<M>) -> bool {
-		if self.len() != other.len() { return false };
+	#[inline(always)]
+	fn eq(&self, other: &FixedString<M>) -> bool { self.as_slice() == other.as_slice() }
+}
 
-		for i in 0x0..self.len() {
-			if self.buf[i] != other.buf[i] { return false };
-		}
-
-		true
-	}
+impl<const N: usize> PartialEq<&[char]> for FixedString<N> {
+	#[inline(always)]
+	fn eq(&self, other: &&[char]) -> bool { self.as_slice() == *other }
 }
 
 impl<const N: usize> PartialEq<&str> for FixedString<N> {
@@ -401,24 +348,34 @@ impl<const N: usize> PartialEq<&str> for FixedString<N> {
 }
 
 impl<const N: usize, const M: usize> PartialOrd<FixedString<M>> for FixedString<N> {
-	fn partial_cmp(&self, other: &FixedString<M>) -> Option<Ordering> {
-		let len = self.len().max(other.len());
+	#[inline(always)]
+	fn partial_cmp(&self, other: &FixedString<M>) -> Option<Ordering> { self.partial_cmp(&other.as_slice()) }
+}
 
-		for i in 0x0..len {
-			let lc = self.get(i);
-			let rc = other.get(i);
+impl<const N: usize> PartialOrd<&[char]> for FixedString<N> {
+	#[inline(always)]
+	fn partial_cmp(&self, other: &&[char]) -> Option<Ordering> { self.as_slice().partial_cmp(other) }
+}
 
-			match (lc, rc) {
-				(None, None)    => return Some(Ordering::Equal),
-				(Some(_), None) => return Some(Ordering::Greater),
-				(None, Some(_)) => return Some(Ordering::Less),
+impl<const N: usize> PartialOrd<&str> for FixedString<N> {
+	#[inline]
+	fn partial_cmp(&self, other: &&str) -> Option<Ordering> {
+		let llen = self.len();
+		let rlen = other.chars().count();
 
-				(Some(lc), Some(rc)) => {
-					match lc.partial_cmp(rc) {
-						Some(Ordering::Equal) => {},
-						ordering              => return ordering
-					}
-				}
+		match llen.cmp(&rlen) {
+			Ordering::Equal => {},
+
+			ordering => return Some(ordering),
+		};
+
+		for (i, rc) in other.chars().enumerate() {
+			let lc = self[i];
+
+			match lc.cmp(&rc) {
+				Ordering::Equal => {},
+
+				ordering => return Some(ordering),
 			}
 		}
 
