@@ -3,6 +3,12 @@
 This is the changelog of bzipper.
 See `"README.md"` for more information.
 
+## 0.6.1
+
+* Bump dependency version
+* Update docs
+* Add more examples
+
 ## 0.6.0
 
 * Update readme

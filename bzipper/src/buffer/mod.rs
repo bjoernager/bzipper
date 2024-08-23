@@ -30,12 +30,41 @@ use core::fmt::{Debug, Formatter};
 use core::marker::PhantomData;
 use core::ops::{Deref, DerefMut};
 
+// We cannot use arrays for the `Buffer` type as
+// that would require `generic_const_exprs`.
+
 /// Typed (de)serialisation buffer.
 ///
 /// This structure is intended as a lightweight wrapper around byte buffers for specific (de)serialisations of specific types.
 ///
 /// The methods [`write`](Self::write) and [`read`](Self::read) can be used to <interpreting> the internal buffer.
 /// Other methods exist for accessing the internal buffer directly.
+///
+/// # Examples
+///
+/// Create a buffer for holding a `Request` enumeration:
+///
+/// ```
+/// use bzipper::{Buffer, FixedString, Serialise};
+///
+/// #[derive(Serialise)]
+/// enum Request {
+///     Join { username: FixedString<0x10> },
+///
+///     Quit { username: FixedString<0x10> },
+///
+///     SendMessage { message: FixedString<0x20> },
+/// }
+///
+/// use Request::*;
+///
+/// let join_request = Join { username: FixedString::try_from("epsiloneridani").unwrap() };
+///
+/// let mut buf = Buffer::<Request>::new();
+/// buf.write(&join_request);
+///
+/// // Do something with the buffer...
+/// ```
 #[cfg_attr(doc, doc(cfg(feature = "alloc")))]
 #[derive(Clone, Eq, PartialEq)]
 pub struct Buffer<T: Serialise> {
@@ -63,12 +92,12 @@ impl<T: Serialise> Buffer<T> {
 	#[must_use]
 	pub fn as_mut_ptr(&mut self) -> *mut u8 { self.buf.as_mut_ptr() }
 
-	/// Gets a slice of the intenral buffer.
+	/// Gets a slice of the internal buffer.
 	#[inline(always)]
 	#[must_use]
 	pub const fn as_slice(&self) -> &[u8] { unsafe { core::slice::from_raw_parts(self.as_ptr(), self.len()) } }
 
-	/// Gets a mutable slice of the intenral buffer.
+	/// Gets a mutable slice of the internal buffer.
 	#[inline(always)]
 	#[must_use]
 	pub fn as_mut_slice(&mut self) -> &mut [u8] { &mut self.buf }
