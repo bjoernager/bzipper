@@ -37,7 +37,7 @@ fn test() {
 
 	#[derive(Debug, Deserialise, PartialEq, Serialise)]
 	enum UnitOrFields {
-		Unit(Unit),
+		Unit,
 		Unnamed(i32),
 		Named { timestamp: u64 },
 	}
@@ -104,7 +104,7 @@ fn test() {
 	test!(UnitOrFields: [
 		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 		0x00, 0x00, 0x00, 0x00,
-	] => UnitOrFields::Unit(Unit));
+	] => UnitOrFields::Unit);
 
 	test!(UnitOrFields: [
 		0x00, 0x00, 0x00, 0x01, 0xFF, 0xFF, 0xFF, 0xFF,

@@ -35,7 +35,7 @@ pub fn serialise_enum(data: &DataEnum) -> TokenStream {
 	for (index, variant) in data.variants.iter().enumerate() {
 		let mut serialised_size = Punctuated::<TokenStream, Token![+]>::new();
 
-		let name = &variant.ident;
+		let variant_name = &variant.ident;
 
 		let discriminant = u32::try_from(index)
 			.expect("enumeration discriminants must be representable in `u32`");
@@ -43,38 +43,34 @@ pub fn serialise_enum(data: &DataEnum) -> TokenStream {
 		// Discriminant size:
 		serialised_size.push(quote! { <u32 as ::bzipper::Serialise>::SERIALISED_SIZE });
 
-		let arm = if matches!(variant.fields, Fields::Unit) {
-			quote! { Self::#name => stream.append(&#discriminant)? }
-		} else {
-			let mut captures = Punctuated::<Capture, Token![,]>::new();
+		let mut captures = Punctuated::<Capture, Token![,]>::new();
 
-			let mut chain_commands = Punctuated::<TokenStream, Token![;]>::new();
-			chain_commands.push(quote! { stream.append(&#discriminant)? });
+		let mut chain_commands = Punctuated::<TokenStream, Token![;]>::new();
+		chain_commands.push(quote! { stream.append(&#discriminant)? });
 
-			for (index, field) in variant.fields.iter().enumerate() {
-				let field_ty = &field.ty;
+		for (index, field) in variant.fields.iter().enumerate() {
+			let field_ty = &field.ty;
 
-				let field_name = field.ident
-					.as_ref()
-					.map_or_else(|| Ident::new(&format!("v{index}"), Span::call_site()), Clone::clone);
+			let field_name = field.ident
+				.as_ref()
+				.map_or_else(|| Ident::new(&format!("v{index}"), Span::call_site()), Clone::clone);
 
-				serialised_size.push(quote! { <#field_ty as ::bzipper::Serialise>::SERIALISED_SIZE });
+			serialised_size.push(quote! { <#field_ty as ::bzipper::Serialise>::SERIALISED_SIZE });
 
-				captures.push(Capture {
-					ref_token: Token![ref](Span::call_site()),
-					ident:     field_name.clone(),
-				});
+			captures.push(Capture {
+				ref_token: Token![ref](Span::call_site()),
+				ident:     field_name.clone(),
+			});
 
-				chain_commands.push(quote! { stream.append(#field_name)? });
-			}
+			chain_commands.push(quote! { stream.append(#field_name)? });
+		}
 
-			chain_commands.push_punct(Token![;](Span::call_site()));
+		chain_commands.push_punct(Token![;](Span::call_site()));
 
-			match variant.fields {
-				Fields::Named(  ..) => quote! { Self::#name { #captures } => { #chain_commands } },
-				Fields::Unnamed(..) => quote! { Self::#name(#captures)    => { #chain_commands } },
-				Fields::Unit        => unreachable!(),
-			}
+		let arm = match variant.fields {
+			Fields::Named(  ..) => quote! { Self::#variant_name { #captures } => { #chain_commands } },
+			Fields::Unnamed(..) => quote! { Self::#variant_name(#captures)    => { #chain_commands } },
+			Fields::Unit        => quote! { Self::#variant_name               => { #chain_commands } },
 		};
 
 		sizes.push(serialised_size);

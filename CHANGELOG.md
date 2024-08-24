@@ -3,6 +3,11 @@
 This is the changelog of bzipper.
 See `"README.md"` for more information.
 
+## 0.6.2
+
+* Fix `Deserialise` derive for unit variants
+* Refactor `Serialise` derive for enumerations
+
 ## 0.6.1
 
 * Bump dependency version

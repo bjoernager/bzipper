@@ -35,29 +35,25 @@ pub fn deserialise_enum(data: &DataEnum) -> TokenStream {
 
 		let discriminant = Discriminant::unwrap_from(index);
 
-		let block = if matches!(variant.fields, Fields::Unit) {
-			quote! { Self }
-		} else {
-			let mut chain_commands = Punctuated::<TokenStream, Token![,]>::new();
+		let mut chain_commands = Punctuated::<TokenStream, Token![,]>::new();
 
-			for field in &variant.fields {
-				let field_ty = &field.ty;
+		for field in &variant.fields {
+			let field_ty = &field.ty;
 
-				let command = field.ident
-					.as_ref()
-					.map_or_else(
-						||           quote! { stream.take::<#field_ty>()? },
-						|field_name| quote! { #field_name: stream.take::<#field_ty>()? }
-					);
+			let command = field.ident
+				.as_ref()
+				.map_or_else(
+					||           quote! { stream.take::<#field_ty>()? },
+					|field_name| quote! { #field_name: stream.take::<#field_ty>()? }
+				);
 
-				chain_commands.push(command);
-			}
+			chain_commands.push(command);
+		}
 
-			match variant.fields {
-				Fields::Named(  ..) => quote! { Self::#variant_name { #chain_commands } },
-				Fields::Unnamed(..) => quote! { Self::#variant_name(#chain_commands) },
-				Fields::Unit        => unreachable!(),
-			}
+		let block = match variant.fields {
+			Fields::Named(  ..) => quote! { Self::#variant_name { #chain_commands } },
+			Fields::Unnamed(..) => quote! { Self::#variant_name(#chain_commands) },
+			Fields::Unit        => quote! { Self::#variant_name },
 		};
 
 		match_arms.push(quote! { #discriminant => #block });
