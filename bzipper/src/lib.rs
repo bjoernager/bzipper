@@ -23,7 +23,7 @@
 
 //! Binary (de)serialisation.
 //!
-//! Contrary to [Serde](https://crates.io/crates/serde/)/[Bincode](https://crates.io/crates/bincode/), the goal of bzipper is to serialise with a known size constraint.
+//! In contrast to [Serde](https://crates.io/crates/serde/)/[Bincode](https://crates.io/crates/bincode/), the primary goal of bzipper is to serialise with a known size constraint.
 //! Therefore, this crate may be more suited for networking or other cases where a fixed-sized buffer is needed.
 //!
 //! Keep in mind that this project is still work-in-progress.
@@ -41,15 +41,15 @@
 //!
 //! # Usage
 //!
-//! This crate revolves around the [`Serialise`] and [`Deserialise`] traits, both of which are commonly used in conjunction with streams (more specifically, [s-streams](Sstream) and [d-streams](Dstream)).
+//! This crate revolves around the [`Serialise`] and [`Deserialise`] traits, both of which use *streams* -- or more specifically -- [s-streams](Sstream) and [d-streams](Dstream).
 //!
 //! Many core types come implemented with bzipper, including primitives as well as some standard library types such as [`Option`] and [`Result`](core::result::Result).
 //!
-//! It is recommended in most cases to just derive these traits for custom types (enumerations and structures only).
-//! Here, each field is chained in declaration order:
+//! It is recommended in most cases to just derive these two traits for custom types (although this is only supported with enumerations and structures).
+//! Here, each field is *chained* according to declaration order:
 //!
 //! ```
-//! use bzipper::{Deserialise, Serialise};
+//! use bzipper::{Buffer, Deserialise, Serialise};
 //!
 //! #[derive(Debug, Deserialise, PartialEq, Serialise)]
 //! struct IoRegister {
@@ -57,45 +57,55 @@
 //!     value: u16,
 //! }
 //!
-//! let mut buf: [u8; IoRegister::SERIALISED_SIZE] = Default::default();
-//! IoRegister { addr: 0x04000000, value: 0x0402 }.serialise(&mut buf).unwrap();
+//! let mut buf = Buffer::new();
 //!
+//! buf.write(IoRegister { addr: 0x04000000, value: 0x0402 }).unwrap();
+//!
+//! assert_eq!(buf.len(), 0x6);
 //! assert_eq!(buf, [0x04, 0x00, 0x00, 0x00, 0x04, 0x02]);
 //!
-//! assert_eq!(IoRegister::deserialise(&buf).unwrap(), IoRegister { addr: 0x04000000, value: 0x0402 });
+//! assert_eq!(buf.read().unwrap(), IoRegister { addr: 0x04000000, value: 0x0402 });
 //! ```
 //!
 //! ## Serialisation
 //!
-//! To serialise an object implementing `Serialise`, simply allocate a buffer for the serialisation.
-//! The required size of any given serialisation is specified by the [`SERIALISED_SIZE`](Serialise::SERIALISED_SIZE) constant:
+//! To serialise an object implementing `Serialise`, simply allocate a buffer for the serialisation and wrap it in an s-stream (*serialisation stream*) with the [`Sstream`] type.
 //!
 //! ```
-//! use bzipper::Serialise;
+//! use bzipper::{Serialise, Sstream};
 //!
-//! let mut buf: [u8; char::SERIALISED_SIZE] = Default::default();
-//! 'Ж'.serialise(&mut buf).unwrap();
+//! let mut buf = [Default::default(); char::MAX_SERIALISED_SIZE];
+//! let mut stream = Sstream::new(&mut buf);
 //!
-//! assert_eq!(buf, [0x00, 0x00, 0x04, 0x16]);
+//! 'Ж'.serialise(&mut stream).unwrap();
+//!
+//! assert_eq!(stream, [0x00, 0x00, 0x04, 0x16]);
 //! ```
 //!
-//! The only special requirement of the [`serialise`](Serialise::serialise) method is that the provided byte slice has an element count of exactly `SERIALISED_SIZE`.
+//! The maximum size of any given serialisation is specified by the [`MAX_SERIALISED_SIZE`](Serialise::MAX_SERIALISED_SIZE) constant.
 //!
-//! We can also use streams to *chain* multiple elements together.
+//! We can also use streams to chain multiple elements together:
 //!
 //! ```
-//! use bzipper::Serialise;
+//! use bzipper::{Serialise, Sstream};
 //!
-//! let mut buf: [u8; char::SERIALISED_SIZE * 5] = Default::default();
-//! let mut stream = bzipper::Sstream::new(&mut buf);
+//! let mut buf = [Default::default(); char::MAX_SERIALISED_SIZE * 0x5];
+//! let mut stream = Sstream::new(&mut buf);
 //!
-//! stream.append(&'ل');
-//! stream.append(&'ا');
-//! stream.append(&'م');
-//! stream.append(&'د');
-//! stream.append(&'ا');
+//! // Note: For serialising multiple characters, the
+//! // `FixedString` type is usually preferred.
 //!
-//! assert_eq!(buf, [0x00, 0x00, 0x06, 0x44, 0x00, 0x00, 0x06, 0x27, 0x00, 0x00, 0x06, 0x45, 0x00, 0x00, 0x06, 0x2F, 0x00, 0x00, 0x06, 0x27]);
+//! 'ل'.serialise(&mut stream).unwrap();
+//! 'ا'.serialise(&mut stream).unwrap();
+//! 'م'.serialise(&mut stream).unwrap();
+//! 'د'.serialise(&mut stream).unwrap();
+//! 'ا'.serialise(&mut stream).unwrap();
+//!
+//! assert_eq!(buf, [
+//!     0x00, 0x00, 0x06, 0x44, 0x00, 0x00, 0x06, 0x27,
+//!     0x00, 0x00, 0x06, 0x45, 0x00, 0x00, 0x06, 0x2F,
+//!     0x00, 0x00, 0x06, 0x27
+//! ]);
 //! ```
 //!
 //! When serialising primitives, the resulting byte stream is in big endian (a.k.a. network endian).
@@ -103,27 +113,35 @@
 //!
 //! ## Deserialisation
 //!
-//! Deserialisation works with an almost identical syntax to serialisation.
+//! Deserialisation works with a similar syntax to serialisation.
 //!
-//! To deserialise a buffer, simply call the [`deserialise`](Deserialise::deserialise) method:
+//! D-streams (*deserialisation streams*) use the [`Dstream`] type and are constructed in a manner similar to s-streams.
+//! To deserialise a buffer, simply call the [`deserialise`](Deserialise::deserialise) method with the strema:
 //!
 //! ```
-//! use bzipper::Deserialise;
+//! use bzipper::{Deserialise, Dstream};
 //!
 //! let data = [0x45, 0x54];
-//! assert_eq!(<u16>::deserialise(&data).unwrap(), 0x4554);
+//! let stream = Dstream::new(&data);
+//! assert_eq!(u16::deserialise(&stream).unwrap(), 0x4554);
 //! ```
 //!
-//! Just like with serialisations, the [`Dstream`] can be used to deserialise chained elements:
+//! And just like s-streams, d-streams can also be used to handle chaining:
 //!
 //! ```
-//! use bzipper::Deserialise;
+//! use bzipper::{Deserialise, Dstream};
 //!
 //! let data = [0x45, 0x54];
-//! let stream = bzipper::Dstream::new(&data);
+//! let stream = Dstream::new(&data);
 //!
-//! assert_eq!(stream.take::<u8>().unwrap(), 0x45);
-//! assert_eq!(stream.take::<u8>().unwrap(), 0x54);
+//! assert_eq!(u8::deserialise(&stream).unwrap(), 0x45);
+//! assert_eq!(u8::deserialise(&stream).unwrap(), 0x54);
+//!
+//! // The data can also be deserialised as a tuple (up
+//! // to twelve elements).
+//!
+//! let stream = Dstream::new(&data);
+//! assert_eq!(<(u8, u8)>::deserialise(&stream).unwrap(), (0x45, 0x54));
 //! ```
 
 #![no_std]
@@ -139,8 +157,6 @@ extern crate alloc;
 extern crate std;
 
 /// Implements [`Deserialise`] for the provided type.
-///
-/// This macro assumes that `Serialise` was also derived, although this is not strictly required as it is unenforceable.
 #[doc(inline)]
 pub use bzipper_macros::Deserialise;
 
@@ -151,7 +167,7 @@ pub use bzipper_macros::Deserialise;
 /// For structures, each element is chained in **order of declaration.**
 /// For example, the following struct will serialise its field `foo` before `bar`:
 ///
-/// ```
+/// ```rust
 /// use bzipper::Serialise;
 ///
 /// #[derive(Serialise)]
@@ -161,9 +177,9 @@ pub use bzipper_macros::Deserialise;
 /// }
 /// ```
 ///
-/// Should the order of declaration change, then most of---if not all---previous dervied serialisations become void.
+/// Should the structure's declaration change, then all previous derived serialisations be considered void.
 ///
-/// The value of [`SERIALISED_SIZE`](Serialise::SERIALISED_SIZE) is set to the combined value of all fields.
+/// The value of [`MAX_SERIALISED_SIZE`](Serialise::MAX_SERIALISED_SIZE) is set to the combined value of all fields.
 ///
 /// If the structure is a unit structure (i.e. it has *no* fields), it is serialised equivalently to the [unit] type.
 ///
@@ -176,12 +192,12 @@ pub use bzipper_macros::Deserialise;
 /// Variants with fields are serialised exactly like structures.
 /// That is, each field is chained in order of declaration.
 ///
-/// Each variant has its own serialised size, and the largest of these values is chosen as the serialised size of the enumeration type.
+/// Each variant has its own value of `MAX_SERIALISED_SIZE`, and the largest of these values is chosen as the value of the enumeration's own `MAX_SERIALISED_SIZE`.
 ///
 /// # Unions
 ///
 /// Unions cannot derive `Serialise` due to the uncertainty of their contents.
-/// The trait should therefore be implemented manually.
+/// The trait should therefore be implemented manually for such types.
 #[doc(inline)]
 pub use bzipper_macros::Serialise;
 
@@ -196,7 +212,6 @@ pub(in crate) use use_mod;
 use_mod!(pub deserialise);
 use_mod!(pub dstream);
 use_mod!(pub error);
-use_mod!(pub fixed_iter);
 use_mod!(pub fixed_string);
 use_mod!(pub serialise);
 use_mod!(pub sstream);

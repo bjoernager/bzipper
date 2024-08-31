@@ -22,39 +22,55 @@
 #[cfg(test)]
 mod test;
 
-use crate::{Deserialise, Error, FixedIter, Serialise};
+use crate::{
+	Deserialise,
+	Dstream,
+	Error,
+	Serialise,
+	Sstream,
+};
 
+use core::borrow::{Borrow, BorrowMut};
 use core::cmp::Ordering;
 use core::fmt::{Debug, Display, Formatter};
-use core::mem::MaybeUninit;
-use core::ops::{Deref, DerefMut, Index, IndexMut};
+use core::hash::{Hash, Hasher};
+use core::ops::{Add, AddAssign, Deref, DerefMut, Index, IndexMut};
 use core::slice::SliceIndex;
-use core::str::FromStr;
+use core::str::{Chars, CharIndices, FromStr};
 
 #[cfg(feature = "alloc")]
-use alloc::string::{String, ToString};
+use alloc::string::String;
 
-/// Owned string with maximum size.
+#[cfg(feature = "std")]
+use std::ffi::OsStr;
+
+#[cfg(feature = "std")]
+use std::net::ToSocketAddrs;
+
+#[cfg(feature = "std")]
+use std::path::Path;
+
+/// Heap-allocated string with maximum size.
 ///
 /// This is in contrast to [String] -- which has no size limit in practice -- and [str], which is unsized.
+///
+/// The string itself is encoded in UTF-8 for interoperability wtih Rust's standard string facilities, as well as for memory concerns.
+///
+/// Keep in mind that the size limit specified by `N` denotes *bytes* and not *characters* -- i.e. a value of `8` may translate to between two and eight characters, depending on their codepoints.
 ///
 /// # Examples
 ///
 /// All instances of this type have the same size if the value of `N` is also the same.
-/// This size can be found through
-///
-/// `size_of::<char>() * N + size_of::<usize>()`.
-///
 /// Therefore, the following four strings have -- despite their different contents -- the same total size.
 ///
-/// ```
+/// ```rust
 /// use bzipper::FixedString;
 /// use std::str::FromStr;
 ///
-/// let str0 = FixedString::<0xF>::new(); // Empty string.
-/// let str1 = FixedString::<0xF>::from_str("Hello there!");
-/// let str2 = FixedString::<0xF>::from_str("أنا من أوروپا");
-/// let str3 = FixedString::<0xF>::from_str("COGITO ERGO SUM");
+/// let str0 = FixedString::<0x40>::new(); // Empty string.
+/// let str1 = FixedString::<0x40>::from_str("Hello there!").unwrap();
+/// let str2 = FixedString::<0x40>::from_str("أنا من أوروپا").unwrap();
+/// let str3 = FixedString::<0x40>::from_str("COGITO ERGO SUM").unwrap();
 ///
 /// assert_eq!(size_of_val(&str0), size_of_val(&str1));
 /// assert_eq!(size_of_val(&str0), size_of_val(&str2));
@@ -64,10 +80,10 @@ use alloc::string::{String, ToString};
 /// assert_eq!(size_of_val(&str2), size_of_val(&str3));
 /// ```
 ///
-/// These three strings can---by extend in theory---also interchange their contents between each other.
-#[derive(Clone, Deserialise, Serialise)]
+/// These three strings can -- by extend in theory -- also interchange their contents between each other.
+#[derive(Clone)]
 pub struct FixedString<const N: usize> {
-	buf: [char; N],
+	buf: [u8; N],
 	len: usize,
 }
 
@@ -81,62 +97,78 @@ impl<const N: usize> FixedString<N> {
 	/// The constructed string will have a null length.
 	/// All characters inside the internal buffer are instanced as `U+0000 NULL`.
 	///
-	/// For constructing a string with an already defined buffer, see [`from_chars`](Self::from_chars) and [`from_raw_parts`](Self::from_raw_parts).
+	/// For constructing a string with an already defined buffer, see [`from_raw_parts`](Self::from_raw_parts) and [`from_str`](Self::from_str).
 	#[inline(always)]
 	#[must_use]
-	pub const fn new() -> Self { Self { buf: ['\0'; N], len: 0x0 } }
+	pub const fn new() -> Self { Self { buf: [0x00; N], len: 0x0 } }
 
-	/// Consumes the buffer into a fixed string.
+	/// Constructs a new, fixed-size string from raw parts.
 	///
-	/// The internal length is to `N`.
-	/// For a similar function but with an explicit size, see [`from_raw_parts`](Self::from_raw_parts).
-	#[inline(always)]
-	#[must_use]
-	pub const fn from_chars(buf: [char; N]) -> Self { Self { buf, len: N } }
-
-	/// Constructs a fixed string from raw parts.
-	#[inline(always)]
-	#[must_use]
-	pub const fn from_raw_parts(buf: [char; N], len: usize) -> Self { Self { buf, len } }
-
-	/// Deconstructs a fixed string into its raw parts.
-	#[inline(always)]
-	#[must_use]
-	pub const fn into_raw_parts(self) -> ([char; N], usize) { (self.buf, self.len) }
-
-	/// Gets a pointer to the first character.
-	#[inline(always)]
-	#[must_use]
-	pub const fn as_ptr(&self) -> *const char { self.buf.as_ptr() }
-
-	/// Gets a mutable pointer to the first character.
+	/// The provided parts are not tested in any way.
 	///
-	/// This function can only be marked as `const` when `const_mut_refs` is implemented.
-	/// See tracking issue [`#57349`](https://github.com/rust-lang/rust/issues/57349/) for more information.
+	/// # Safety
+	///
+	/// The value of `len` may not exceed that of `N`.
+	/// Additionally, the octets in `buf` (from index zero up to the value of `len`) must be valid UTF-8 codepoints.
+	///
+	/// If any of these requirements are violated, behaviour is undefined.
 	#[inline(always)]
 	#[must_use]
-	pub fn as_mut_ptr(&mut self) -> *mut char { self.buf.as_mut_ptr() }
+	pub const unsafe fn from_raw_parts(buf: [u8; N], len: usize) -> Self { Self { buf, len } }
 
-	/// Borrows the string as a character slice.
+	/// Destructs the provided string into its raw parts.
+	///
+	/// The returned values are valid to pass on to [`from_raw_parts`](Self::from_raw_parts).
+	///
+	/// The returned byte array is guaranteed to be fully initialised.
+	/// However, only octets up to an index of [`len`](Self::len) are also guaranteed to be valid UTF-8 codepoints.
+	#[inline(always)]
+	#[must_use]
+	pub const fn into_raw_parts(self) -> ([u8; N], usize) { (self.buf, self.len) }
+
+	/// Gets a pointer to the first octet.
+	#[inline(always)]
+	#[must_use]
+	pub const fn as_ptr(&self) -> *const u8 { self.buf.as_ptr() }
+
+	// This function can only be marked as `const` when
+	// `const_mut_refs` is implemented. See tracking
+	// issue #57349 for more information.
+	/// Gets a mutable pointer to the first octet.
+	///
+	#[inline(always)]
+	#[must_use]
+	pub fn as_mut_ptr(&mut self) -> *mut u8 { self.buf.as_mut_ptr() }
+
+	/// Borrows the string as a byte slice.
 	///
 	/// The range of the returned slice only includes characters that are "used."
-	/// For borrowing the entire internal buffer, see [`as_mut_slice`](Self::as_mut_slice).
 	#[inline(always)]
 	#[must_use]
-	pub const fn as_slice(&self) -> &[char] {
+	pub const fn as_bytes(&self) -> &[u8] {
 		// We need to use `from_raw_parts` to mark this
 		// function `const`.
 
 		unsafe { core::slice::from_raw_parts(self.as_ptr(), self.len()) }
 	}
 
-	/// Mutably borrows the string as a character slice.
+	/// Borrows the string as a string slice.
 	///
-	/// The range of the returned slice includes the entire internal buffer.
-	/// For borrowing only the "used" characters, see [`as_slice`](Self::as_slice).
+	/// The range of the returned slice only includes characters that are "used."
 	#[inline(always)]
 	#[must_use]
-	pub fn as_mut_slice(&mut self) -> &mut [char] { &mut self.buf[0x0..self.len] }
+	pub const fn as_str(&self) -> &str { unsafe { core::str::from_utf8_unchecked(self.as_bytes()) } }
+
+	/// Mutably borrows the string as a string slice.
+	///
+	/// The range of the returned slice only includes characters that are "used."
+	#[inline(always)]
+	#[must_use]
+	pub fn as_mut_str(&mut self) -> &mut str {
+		let range = 0x0..self.len();
+
+		unsafe { core::str::from_utf8_unchecked_mut(&mut self.buf[range]) }
+	}
 
 	/// Returns the length of the string.
 	///
@@ -145,28 +177,32 @@ impl<const N: usize> FixedString<N> {
 	#[must_use]
 	pub const fn len(&self) -> usize { self.len }
 
-	/// Checks if the string is empty, i.e. `self.len() == 0x0`.
+	/// Checks if the string is empty, i.e. no characters are contained.
 	#[inline(always)]
 	#[must_use]
 	pub const fn is_empty(&self) -> bool { self.len() == 0x0 }
 
-	/// Checks if the string is full, i.e. `self.len() == N`.
+	/// Checks if the string is full, i.e. it cannot hold any more characters.
 	#[inline(always)]
 	#[must_use]
 	pub const fn is_full(&self) -> bool { self.len() == N }
 
-	/// Sets the internal length.
+	/// Returns the total capacity of the string.
 	///
-	/// The length is compared with `N` to guarantee that bounds are honoured.
-	///
-	/// # Panics
-	///
-	/// This method panics if the value of `len` is greater than that of `N`.
+	/// This is defined as being exactly the value of `N`.
 	#[inline(always)]
-	pub fn set_len(&mut self, len: usize) {
-		assert!(self.len <= N, "cannot set length longer than the fixed size");
-		self.len = len;
-	}
+	#[must_use]
+	pub const fn capacity(&self) -> usize { N }
+
+	/// Gets a substring of the string.
+	#[inline(always)]
+	#[must_use]
+	pub fn get<I: SliceIndex<str>>(&self, index: I) -> Option<&I::Output> { self.as_str().get(index) }
+
+	/// Gets a mutable substring of the string.
+	#[inline(always)]
+	#[must_use]
+	pub fn get_mut<I: SliceIndex<str>>(&mut self, index: I) -> Option<&mut I::Output> { self.as_mut_str().get_mut(index) }
 
 	/// Pushes a character into the string.
 	///
@@ -174,13 +210,34 @@ impl<const N: usize> FixedString<N> {
 	///
 	/// # Panics
 	///
-	/// If the string cannot hold any more character (i.e. it is full), this method will panic.
+	/// If the string cannot hold the provided character *after* encoding, this method will panic.
 	#[inline(always)]
 	pub fn push(&mut self, c: char) {
-		assert!(!self.is_full(), "cannot push character to full string");
+		let mut buf = [0x00; 0x4];
+		let s = c.encode_utf8(&mut buf);
 
-		self.buf[self.len] = c;
-		self.len += 0x1;
+		self.push_str(s);
+	}
+
+	/// Pushes a string slice into the string.
+	///
+	/// The internal length is updated accordingly.
+	///
+	/// # Panics
+	///
+	/// If the string cannot hold the provided slice, this method will panic.
+	#[inline(always)]
+	pub fn push_str(&mut self, s: &str) {
+		let rem = self.buf.len() - self.len;
+		let req = s.len();
+
+		assert!(rem >= req, "cannot push string beyond fixed length");
+
+		let start = self.len;
+		let stop  = start + req;
+
+		let buf = &mut self.buf[start..stop];
+		buf.copy_from_slice(s.as_bytes());
 	}
 
 	/// Pops a character from the string.
@@ -188,38 +245,76 @@ impl<const N: usize> FixedString<N> {
 	/// The internal length is updated accordingly.
 	///
 	/// If no characters are left (i.e. the string is empty), an instance of [`None`] is returned.
+	///
+	/// **Note that this method is currently unimplemented.**
+	#[deprecated = "temporarily unimplemented"]
 	#[inline(always)]
-	pub fn pop(&mut self) -> Option<char> {
-		self.len
-			.checked_sub(0x1)
-			.map(|len| {
-				let c = self.buf[self.len];
-				self.len = len;
+	pub fn pop(&mut self) -> Option<char> { todo!() }
 
-				c
-			})
+	/// Returns an iterator of the string's characters.
+	#[inline(always)]
+	pub fn chars(&self) -> Chars { self.as_str().chars() }
+
+	/// Returns an iterator of the string's characters along with their positions.
+	#[inline(always)]
+	pub fn char_indices(&self) -> CharIndices { self.as_str().char_indices() }
+}
+
+impl<const N: usize> Add<&str> for FixedString<N> {
+	type Output = Self;
+
+	fn add(mut self, rhs: &str) -> Self::Output {
+		self.push_str(rhs);
+		self
 	}
 }
 
-impl<const N: usize> AsMut<[char]> for FixedString<N> {
-	#[inline(always)]
-	fn as_mut(&mut self) -> &mut [char] { self.as_mut_slice() }
+impl<const N: usize> AddAssign<&str> for FixedString<N> {
+	fn add_assign(&mut self, rhs: &str) { self.push_str(rhs) }
 }
 
-impl<const N: usize> AsRef<[char]> for FixedString<N> {
+impl<const N: usize> AsMut<str> for FixedString<N> {
 	#[inline(always)]
-	fn as_ref(&self) -> &[char] { self.as_slice() }
+	fn as_mut(&mut self) -> &mut str { self.as_mut_str() }
+}
+
+#[cfg(feature = "std")]
+#[cfg_attr(doc, doc(cfg(feature = "std")))]
+impl<const N: usize> AsRef<OsStr> for FixedString<N> {
+	#[inline(always)]
+	fn as_ref(&self) -> &OsStr { self.as_str().as_ref() }
+}
+
+#[cfg(feature = "std")]
+#[cfg_attr(doc, doc(cfg(feature = "std")))]
+impl<const N: usize> AsRef<Path> for FixedString<N> {
+	#[inline(always)]
+	fn as_ref(&self) -> &Path { self.as_str().as_ref() }
+}
+
+impl<const N: usize> AsRef<str> for FixedString<N> {
+	#[inline(always)]
+	fn as_ref(&self) -> &str { self.as_str() }
+}
+
+impl<const N: usize> AsRef<[u8]> for FixedString<N> {
+	#[inline(always)]
+	fn as_ref(&self) -> &[u8] { self.as_bytes() }
+}
+
+impl<const N: usize> Borrow<str> for FixedString<N> {
+	#[inline(always)]
+	fn borrow(&self) -> &str { self.as_str() }
+}
+
+impl<const N: usize> BorrowMut<str> for FixedString<N> {
+	#[inline(always)]
+	fn borrow_mut(&mut self) -> &mut str { self.as_mut_str() }
 }
 
 impl<const N: usize> Debug for FixedString<N> {
 	#[inline]
-	fn fmt(&self, f: &mut Formatter) -> core::fmt::Result {
-		write!(f, "\"")?;
-		for c in self { write!(f, "{}", c.escape_debug())? }
-		write!(f, "\"")?;
-
-		Ok(())
-	}
+	fn fmt(&self, f: &mut Formatter) -> core::fmt::Result { Debug::fmt(self.as_str(), f) }
 }
 
 impl<const N: usize> Default for FixedString<N> {
@@ -227,159 +322,129 @@ impl<const N: usize> Default for FixedString<N> {
 	fn default() -> Self { Self { buf: [Default::default(); N], len: 0x0 } }
 }
 
-/// See [`as_slice`](Self::as_slice).
 impl<const N: usize> Deref for FixedString<N> {
-	type Target = [char];
+	type Target = str;
 
 	#[inline(always)]
-	fn deref(&self) -> &Self::Target { self.as_slice() }
+	fn deref(&self) -> &Self::Target { self.as_str() }
 }
 
-/// See [`as_mut_slice`](Self::as_mut_slice).
 impl<const N: usize> DerefMut for FixedString<N> {
 	#[inline(always)]
-	fn deref_mut(&mut self) -> &mut Self::Target { self.as_mut_slice() }
+	fn deref_mut(&mut self) -> &mut Self::Target { self.as_mut_str() }
+}
+
+impl<const N: usize> Deserialise for FixedString<N> {
+	#[inline]
+	fn deserialise(stream: &Dstream) -> Result<Self, Error> {
+		let len = Deserialise::deserialise(stream)?;
+		if len > N { return Err(Error::ArrayTooShort { req: len, len: N }) };
+
+		let bytes = stream.read(len)?;
+
+		let s = core::str::from_utf8(bytes)
+			.map_err(|e| Error::BadString { source: e })?;
+
+		Self::from_str(s)
+	}
 }
 
 impl<const N: usize> Display for FixedString<N> {
 	#[inline]
-	fn fmt(&self, f: &mut Formatter) -> core::fmt::Result {
-		for c in self { write!(f, "{c}")? }
-
-		Ok(())
-	}
+	fn fmt(&self, f: &mut Formatter) -> core::fmt::Result { Display::fmt(self.as_str(), f) }
 }
 
 impl<const N: usize> Eq for FixedString<N> { }
-
-impl<const N: usize> From<[char; N]> for FixedString<N> {
-	#[inline(always)]
-	fn from(value: [char; N]) -> Self { Self::from_chars(value) }
-}
 
 impl<const N: usize> FromStr for FixedString<N> {
 	type Err = Error;
 
 	#[inline]
 	fn from_str(s: &str) -> Result<Self, Self::Err> {
-		let mut buf = [Default::default(); N];
-		let     len = s.chars().count();
+		let len = s.len();
+		if len > N { return Err(Error::ArrayTooShort { req: len, len: N }) };
 
-		for (i, c) in s.chars().enumerate() {
-			if i >= N { return Err(Error::ArrayTooShort { req: len, len: N }) }
+		let mut buf = [0x00; N];
+		unsafe { core::ptr::copy_nonoverlapping(s.as_ptr(), buf.as_mut_ptr(), len) };
 
-			buf[i] = c;
-		}
+		// The remaining bytes are already initialised to
+		// null.
 
 		Ok(Self { buf, len })
 	}
 }
 
-impl<I: SliceIndex<[char]>, const N: usize> Index<I> for FixedString<N> {
-	type Output = I::Output;
+impl<const N: usize> Hash for FixedString<N> {
+	#[inline(always)]
+	fn hash<H: Hasher>(&self, state: &mut H) { self.as_str().hash(state) }
+}
+
+impl<I: SliceIndex<str>, const N: usize> Index<I> for FixedString<N> {
+	type Output	= I::Output;
 
 	#[inline(always)]
 	fn index(&self, index: I) -> &Self::Output { self.get(index).unwrap() }
 }
 
-impl<I: SliceIndex<[char]>, const N: usize> IndexMut<I> for FixedString<N> {
+impl<I: SliceIndex<str>, const N: usize> IndexMut<I> for FixedString<N> {
 	#[inline(always)]
 	fn index_mut(&mut self, index: I) -> &mut Self::Output { self.get_mut(index).unwrap() }
 }
 
-impl<const N: usize> IntoIterator for FixedString<N> {
-	type Item = char;
-
-	type IntoIter = FixedIter<char, N>;
-
-	#[inline(always)]
-	fn into_iter(self) -> Self::IntoIter {
-		FixedIter {
-			buf: unsafe { self.buf.as_ptr().cast::<[MaybeUninit<char>; N]>().read() },
-
-			pos: 0x0,
-			len: self.len,
-		}
-	}
-}
-
-impl<'a, const N: usize> IntoIterator for &'a FixedString<N> {
-	type Item = &'a char;
-
-	type IntoIter = core::slice::Iter<'a, char>;
-
-	#[inline(always)]
-	fn into_iter(self) -> Self::IntoIter { self.iter() }
-}
-
-impl<'a, const N: usize> IntoIterator for &'a mut FixedString<N> {
-	type Item = &'a mut char;
-
-	type IntoIter = core::slice::IterMut<'a, char>;
-
-	#[inline(always)]
-	fn into_iter(self) -> Self::IntoIter { self.iter_mut() }
-}
-
 impl<const N: usize> Ord for FixedString<N> {
 	#[inline(always)]
-	fn cmp(&self, other: &Self) -> Ordering { self.partial_cmp(other).unwrap() }
+	fn cmp(&self, other: &Self) -> Ordering { self.as_str().cmp(other.as_str()) }
 }
 
 impl<const N: usize, const M: usize> PartialEq<FixedString<M>> for FixedString<N> {
 	#[inline(always)]
-	fn eq(&self, other: &FixedString<M>) -> bool { self.as_slice() == other.as_slice() }
-}
-
-impl<const N: usize> PartialEq<&[char]> for FixedString<N> {
-	#[inline(always)]
-	fn eq(&self, other: &&[char]) -> bool { self.as_slice() == *other }
+	fn eq(&self, other: &FixedString<M>) -> bool { self.as_str() == other.as_str() }
 }
 
 impl<const N: usize> PartialEq<&str> for FixedString<N> {
-	#[inline]
-	fn eq(&self, other: &&str) -> bool {
-		for (i, c) in other.chars().enumerate() {
-			if self.get(i) != Some(&c) { return false };
-		}
-
-		true
-	}
+	#[inline(always)]
+	fn eq(&self, other: &&str) -> bool { self.as_str() == *other }
 }
 
 impl<const N: usize, const M: usize> PartialOrd<FixedString<M>> for FixedString<N> {
 	#[inline(always)]
-	fn partial_cmp(&self, other: &FixedString<M>) -> Option<Ordering> { self.partial_cmp(&other.as_slice()) }
-}
-
-impl<const N: usize> PartialOrd<&[char]> for FixedString<N> {
-	#[inline(always)]
-	fn partial_cmp(&self, other: &&[char]) -> Option<Ordering> { self.as_slice().partial_cmp(other) }
+	fn partial_cmp(&self, other: &FixedString<M>) -> Option<Ordering> { self.as_str().partial_cmp(other.as_str()) }
 }
 
 impl<const N: usize> PartialOrd<&str> for FixedString<N> {
-	#[inline]
-	fn partial_cmp(&self, other: &&str) -> Option<Ordering> {
-		let llen = self.len();
-		let rlen = other.chars().count();
+	#[inline(always)]
+	fn partial_cmp(&self, other: &&str) -> Option<Ordering> { self.as_str().partial_cmp(*other) }
+}
 
-		match llen.cmp(&rlen) {
-			Ordering::Equal => {},
+impl<const N: usize> Serialise for FixedString<N> {
+	const MAX_SERIALISED_SIZE: usize = N + usize::MAX_SERIALISED_SIZE;
 
-			ordering => return Some(ordering),
-		};
+	fn serialise(&self, stream: &mut Sstream) -> Result<(), Error> {
+		self.len().serialise(stream)?;
+		stream.write(self.as_bytes())?;
 
-		for (i, rc) in other.chars().enumerate() {
-			let lc = self[i];
+		Ok(())
+	}
+}
 
-			match lc.cmp(&rc) {
-				Ordering::Equal => {},
+#[cfg(feature = "std")]
+#[cfg_attr(doc, doc(cfg(feature = "std")))]
+impl<const N: usize> ToSocketAddrs for FixedString<N> {
+	type Iter = <str as ToSocketAddrs>::Iter;
 
-				ordering => return Some(ordering),
-			}
-		}
+	#[inline(always)]
+	fn to_socket_addrs(&self) -> std::io::Result<Self::Iter> { self.as_str().to_socket_addrs() }
+}
 
-		Some(Ordering::Equal)
+impl<const N: usize> TryFrom<char> for FixedString<N> {
+	type Error = <Self as FromStr>::Err;
+
+	#[inline(always)]
+	fn try_from(value: char) -> Result<Self, Self::Error> {
+		let mut buf = [0x00; 0x4];
+		let s = value.encode_utf8(&mut buf);
+
+		s.parse()
 	}
 }
 
@@ -391,6 +456,7 @@ impl<const N: usize> TryFrom<&str> for FixedString<N> {
 }
 
 #[cfg(feature = "alloc")]
+#[cfg_attr(doc, doc(cfg(feature = "alloc")))]
 impl<const N: usize> TryFrom<String> for FixedString<N> {
 	type Error = <Self as FromStr>::Err;
 
@@ -398,8 +464,17 @@ impl<const N: usize> TryFrom<String> for FixedString<N> {
 	fn try_from(value: String) -> Result<Self, Self::Error> { Self::from_str(&value) }
 }
 
+/// Converts the fixed-size string into a dynamic string.
+///
+/// The capacity of the resulting [`String`] object is equal to the value of `N`.
 #[cfg(feature = "alloc")]
+#[cfg_attr(doc, doc(cfg(feature = "alloc")))]
 impl<const N: usize> From<FixedString<N>> for String {
 	#[inline(always)]
-	fn from(value: FixedString<N>) -> Self { value.to_string() }
+	fn from(value: FixedString<N>) -> Self {
+		let mut s = Self::with_capacity(N);
+		s.push_str(value.as_str());
+
+		s
+	}
 }

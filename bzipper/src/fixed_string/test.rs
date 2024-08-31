@@ -25,9 +25,9 @@ use core::cmp::Ordering;
 
 #[test]
 fn test_fixed_string() {
-	let str0 = FixedString::<0xC>::try_from("Hello there!").unwrap();
-	let str1 = FixedString::<0xE>::try_from("MEIN_GRO\u{1E9E}_GOTT").unwrap();
-	let str2 = FixedString::<0x5>::try_from("Hello").unwrap();
+	let str0 = FixedString::<0x0C>::try_from("Hello there!").unwrap();
+	let str1 = FixedString::<0x12>::try_from("MEIN_GRO\u{1E9E}_GOTT").unwrap();
+	let str2 = FixedString::<0x05>::try_from("Hello").unwrap();
 
 	assert_eq!(str0.partial_cmp(&str0), Some(Ordering::Equal));
 	assert_eq!(str0.partial_cmp(&str1), Some(Ordering::Less));

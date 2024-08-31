@@ -28,47 +28,53 @@ use alloc::boxed::Box;
 /// Mapping of [`core::result::Result`].
 pub type Result<T> = core::result::Result<T, Error>;
 
-/// (De)serialisation failures.
+/// bzipper errors.
 ///
 /// These variants are used when deserialisation fails.
 /// Serialisations are assumed infallible.
 #[derive(Debug)]
 pub enum Error {
 	/// An array could not hold the requested amount of elements.
-	ArrayTooShort { req: usize, len: usize },
+	ArrayTooShort {
+		/// The required amount of bytes.
+		req: usize,
+
+		/// The remaining amount of bytes.
+		len: usize,
+	},
 
 	/// A string encountered an invalid UTF-8 sequence.
 	BadString { source: Utf8Error },
 
-	/// An implementor-defined error.
+	/// An unspecified (de)serialisation error.
 	///
 	/// This is mainly useful if none of the predefined errors are appropriate.
 	#[cfg(feature = "alloc")]
 	#[cfg_attr(doc, doc(cfg(feature = "alloc")))]
-	CustomError { source: Box<dyn core::error::Error> },
+	CustomError(Box<dyn core::error::Error>),
 
 	/// Bytes were requested on an empty stream.
 	EndOfStream { req: usize, rem: usize },
 
 	/// A boolean encountered a value outside `0` and `1`.
-	InvalidBoolean { value: u8 },
+	InvalidBoolean(u8),
 
 	/// An invalid code point was encountered.
 	///
 	/// This includes surrogate points in the inclusive range `U+D800` to `U+DFFF`, as well as values larger than `U+10FFFF`.
-	InvalidCodePoint { value: u32 },
+	InvalidCodePoint(u32),
 
 	/// An invalid enumeration descriminant was provided.
-	InvalidDiscriminant { value: u32 },
+	InvalidDiscriminant(u32),
 
-	/// An `isize` value couldn't fit into `16` bits.
-	IsizeOutOfRange { value: isize },
+	/// An `isize` value couldn't fit into `32` bits.
+	IsizeOutOfRange(isize),
 
 	/// A non-zero integer encountered the value `0`.
 	NullInteger,
 
-	/// A `usize` value couldn't fit into `16` bits.
-	UsizeOutOfRange { value: usize },
+	/// A `usize` value couldn't fit into `32` bits.
+	UsizeOutOfRange(usize),
 }
 
 impl Display for Error {
@@ -83,28 +89,28 @@ impl Display for Error {
 			=> write!(f, "unable to parse utf8: \"{source}\""),
 
 			#[cfg(feature = "alloc")]
-			CustomError { ref source }
+			CustomError(ref source)
 			=> write!(f, "{source}"),
 
 			EndOfStream { req, rem }
 			=> write!(f, "({req}) byte(s) were requested but only ({rem}) byte(s) were left"),
 
-			InvalidBoolean { value }
+			InvalidBoolean(value)
 			=> write!(f, "expected boolean but got {value:#02X}"),
 
-			InvalidCodePoint { value }
+			InvalidCodePoint(value)
 			=> write!(f, "code point U+{value:04X} is not valid"),
 
-			InvalidDiscriminant { value }
+			InvalidDiscriminant(value)
 			=> write!(f, "discriminant ({value}) is not valid for the given enumeration"),
 
-			IsizeOutOfRange { value }
+			IsizeOutOfRange(value)
 			=> write!(f, "signed size value ({value}) cannot be serialised: must be in the range ({}) to ({})", i16::MIN, i16::MAX),
 
 			NullInteger
 			=> write!(f, "expected non-zero integer but got (0)"),
 
-			UsizeOutOfRange { value }
+			UsizeOutOfRange(value)
 			=> write!(f, "unsigned size value ({value}) cannot be serialised: must be at most ({})", u16::MAX),
 		}
 	}
@@ -118,7 +124,7 @@ impl core::error::Error for Error {
 			BadString { ref source } => Some(source),
 
 			#[cfg(feature = "alloc")]
-			CustomError { ref source } => Some(source.as_ref()),
+			CustomError(ref source) => Some(source.as_ref()),
 
 			_ => None,
 		}

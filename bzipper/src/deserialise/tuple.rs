@@ -19,17 +19,17 @@
 // er General Public License along with bzipper. If
 // not, see <https://www.gnu.org/licenses/>.
 
-use crate::{Deserialise, Result, Serialise};
+use crate::{Deserialise, Dstream, Result};
 
 impl<T0> Deserialise for (T0, )
 where
 	T0: Deserialise, {
-	fn deserialise(data: &[u8]) -> Result<Self> {
-		debug_assert_eq!(data.len(), Self::SERIALISED_SIZE);
+	fn deserialise(stream: &Dstream) -> Result<Self> {
+		let value = (
+			Deserialise::deserialise(stream)?,
+		);
 
-		Ok((
-			Deserialise::deserialise(data)?,
-		))
+		Ok(value)
 	}
 }
 
@@ -37,13 +37,13 @@ impl<T0, T1> Deserialise for (T0, T1)
 where
 	T0: Deserialise,
 	T1: Deserialise, {
-	fn deserialise(data: &[u8]) -> Result<Self> {
-		debug_assert_eq!(data.len(), Self::SERIALISED_SIZE);
+	fn deserialise(stream: &Dstream) -> Result<Self> {
+		let value = (
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+		);
 
-		Ok((
-			Deserialise::deserialise(data)?,
-			Deserialise::deserialise(data)?,
-		))
+		Ok(value)
 	}
 }
 
@@ -52,14 +52,14 @@ where
 	T0: Deserialise,
 	T1: Deserialise,
 	T2: Deserialise, {
-	fn deserialise(data: &[u8]) -> Result<Self> {
-		debug_assert_eq!(data.len(), Self::SERIALISED_SIZE);
+	fn deserialise(stream: &Dstream) -> Result<Self> {
+		let value = (
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+		);
 
-		Ok((
-			Deserialise::deserialise(data)?,
-			Deserialise::deserialise(data)?,
-			Deserialise::deserialise(data)?,
-		))
+		Ok(value)
 	}
 }
 
@@ -69,15 +69,15 @@ where
 	T1: Deserialise,
 	T2: Deserialise,
 	T3: Deserialise, {
-	fn deserialise(data: &[u8]) -> Result<Self> {
-		debug_assert_eq!(data.len(), Self::SERIALISED_SIZE);
+	fn deserialise(stream: &Dstream) -> Result<Self> {
+		let value = (
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+		);
 
-		Ok((
-			Deserialise::deserialise(data)?,
-			Deserialise::deserialise(data)?,
-			Deserialise::deserialise(data)?,
-			Deserialise::deserialise(data)?,
-		))
+		Ok(value)
 	}
 }
 
@@ -88,16 +88,16 @@ where
 	T2: Deserialise,
 	T3: Deserialise,
 	T4: Deserialise, {
-	fn deserialise(data: &[u8]) -> Result<Self> {
-		debug_assert_eq!(data.len(), Self::SERIALISED_SIZE);
+	fn deserialise(stream: &Dstream) -> Result<Self> {
+		let value = (
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+		);
 
-		Ok((
-			Deserialise::deserialise(data)?,
-			Deserialise::deserialise(data)?,
-			Deserialise::deserialise(data)?,
-			Deserialise::deserialise(data)?,
-			Deserialise::deserialise(data)?,
-		))
+		Ok(value)
 	}
 }
 
@@ -109,17 +109,17 @@ where
 	T3: Deserialise,
 	T4: Deserialise,
 	T5: Deserialise, {
-	fn deserialise(data: &[u8]) -> Result<Self> {
-		debug_assert_eq!(data.len(), Self::SERIALISED_SIZE);
+	fn deserialise(stream: &Dstream) -> Result<Self> {
+		let value = (
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+		);
 
-		Ok((
-			Deserialise::deserialise(data)?,
-			Deserialise::deserialise(data)?,
-			Deserialise::deserialise(data)?,
-			Deserialise::deserialise(data)?,
-			Deserialise::deserialise(data)?,
-			Deserialise::deserialise(data)?,
-		))
+		Ok(value)
 	}
 }
 
@@ -132,18 +132,18 @@ where
 	T4: Deserialise,
 	T5: Deserialise,
 	T6: Deserialise, {
-	fn deserialise(data: &[u8]) -> Result<Self> {
-		debug_assert_eq!(data.len(), Self::SERIALISED_SIZE);
+	fn deserialise(stream: &Dstream) -> Result<Self> {
+		let value = (
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+		);
 
-		Ok((
-			Deserialise::deserialise(data)?,
-			Deserialise::deserialise(data)?,
-			Deserialise::deserialise(data)?,
-			Deserialise::deserialise(data)?,
-			Deserialise::deserialise(data)?,
-			Deserialise::deserialise(data)?,
-			Deserialise::deserialise(data)?,
-		))
+		Ok(value)
 	}
 }
 
@@ -157,19 +157,19 @@ where
 	T5: Deserialise,
 	T6: Deserialise,
 	T7: Deserialise, {
-	fn deserialise(data: &[u8]) -> Result<Self> {
-		debug_assert_eq!(data.len(), Self::SERIALISED_SIZE);
+	fn deserialise(stream: &Dstream) -> Result<Self> {
+		let value = (
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+		);
 
-		Ok((
-			Deserialise::deserialise(data)?,
-			Deserialise::deserialise(data)?,
-			Deserialise::deserialise(data)?,
-			Deserialise::deserialise(data)?,
-			Deserialise::deserialise(data)?,
-			Deserialise::deserialise(data)?,
-			Deserialise::deserialise(data)?,
-			Deserialise::deserialise(data)?,
-		))
+		Ok(value)
 	}
 }
 
@@ -184,20 +184,20 @@ where
 	T6: Deserialise,
 	T7: Deserialise,
 	T8: Deserialise, {
-	fn deserialise(data: &[u8]) -> Result<Self> {
-		debug_assert_eq!(data.len(), Self::SERIALISED_SIZE);
+	fn deserialise(stream: &Dstream) -> Result<Self> {
+		let value = (
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+		);
 
-		Ok((
-			Deserialise::deserialise(data)?,
-			Deserialise::deserialise(data)?,
-			Deserialise::deserialise(data)?,
-			Deserialise::deserialise(data)?,
-			Deserialise::deserialise(data)?,
-			Deserialise::deserialise(data)?,
-			Deserialise::deserialise(data)?,
-			Deserialise::deserialise(data)?,
-			Deserialise::deserialise(data)?,
-		))
+		Ok(value)
 	}
 }
 
@@ -213,21 +213,21 @@ where
 	T7: Deserialise,
 	T8: Deserialise,
 	T9: Deserialise, {
-	fn deserialise(data: &[u8]) -> Result<Self> {
-		debug_assert_eq!(data.len(), Self::SERIALISED_SIZE);
+	fn deserialise(stream: &Dstream) -> Result<Self> {
+		let value = (
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+		);
 
-		Ok((
-			Deserialise::deserialise(data)?,
-			Deserialise::deserialise(data)?,
-			Deserialise::deserialise(data)?,
-			Deserialise::deserialise(data)?,
-			Deserialise::deserialise(data)?,
-			Deserialise::deserialise(data)?,
-			Deserialise::deserialise(data)?,
-			Deserialise::deserialise(data)?,
-			Deserialise::deserialise(data)?,
-			Deserialise::deserialise(data)?,
-		))
+		Ok(value)
 	}
 }
 
@@ -244,22 +244,22 @@ where
 	T8:  Deserialise,
 	T9:  Deserialise,
 	T10: Deserialise, {
-	fn deserialise(data: &[u8]) -> Result<Self> {
-		debug_assert_eq!(data.len(), Self::SERIALISED_SIZE);
+	fn deserialise(stream: &Dstream) -> Result<Self> {
+		let value = (
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+		);
 
-		Ok((
-			Deserialise::deserialise(data)?,
-			Deserialise::deserialise(data)?,
-			Deserialise::deserialise(data)?,
-			Deserialise::deserialise(data)?,
-			Deserialise::deserialise(data)?,
-			Deserialise::deserialise(data)?,
-			Deserialise::deserialise(data)?,
-			Deserialise::deserialise(data)?,
-			Deserialise::deserialise(data)?,
-			Deserialise::deserialise(data)?,
-			Deserialise::deserialise(data)?,
-		))
+		Ok(value)
 	}
 }
 
@@ -277,22 +277,22 @@ where
 	T9:  Deserialise,
 	T10: Deserialise,
 	T11: Deserialise, {
-	fn deserialise(data: &[u8]) -> Result<Self> {
-		debug_assert_eq!(data.len(), Self::SERIALISED_SIZE);
+	fn deserialise(stream: &Dstream) -> Result<Self> {
+		let value = (
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+			Deserialise::deserialise(stream)?,
+		);
 
-		Ok((
-			Deserialise::deserialise(data)?,
-			Deserialise::deserialise(data)?,
-			Deserialise::deserialise(data)?,
-			Deserialise::deserialise(data)?,
-			Deserialise::deserialise(data)?,
-			Deserialise::deserialise(data)?,
-			Deserialise::deserialise(data)?,
-			Deserialise::deserialise(data)?,
-			Deserialise::deserialise(data)?,
-			Deserialise::deserialise(data)?,
-			Deserialise::deserialise(data)?,
-			Deserialise::deserialise(data)?,
-		))
+		Ok(value)
 	}
 }

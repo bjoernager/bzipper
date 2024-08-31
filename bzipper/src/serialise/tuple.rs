@@ -24,15 +24,11 @@ use crate::{Result, Serialise, Sstream};
 impl<T0> Serialise for (T0, )
 where
 	T0: Serialise, {
-	const SERIALISED_SIZE: usize =
-		T0::SERIALISED_SIZE;
+	const MAX_SERIALISED_SIZE: usize =
+		T0::MAX_SERIALISED_SIZE;
 
-	fn serialise(&self, buf: &mut [u8]) -> Result<()> {
-		debug_assert_eq!(buf.len(), Self::SERIALISED_SIZE);
-
-		let mut stream = Sstream::new(buf);
-
-		stream.append(&self.0)?;
+	fn serialise(&self, stream: &mut Sstream) -> Result<()> {
+		self.0.serialise(stream)?;
 
 		Ok(())
 	}
@@ -42,17 +38,13 @@ impl<T0, T1> Serialise for (T0, T1)
 where
 	T0: Serialise,
 	T1: Serialise, {
-	const SERIALISED_SIZE: usize =
-		T0::SERIALISED_SIZE
-		+ T1::SERIALISED_SIZE;
+	const MAX_SERIALISED_SIZE: usize =
+		T0::MAX_SERIALISED_SIZE
+		+ T1::MAX_SERIALISED_SIZE;
 
-	fn serialise(&self, buf: &mut [u8]) -> Result<()> {
-		debug_assert_eq!(buf.len(), Self::SERIALISED_SIZE);
-
-		let mut stream = Sstream::new(buf);
-
-		stream.append(&self.0)?;
-		stream.append(&self.1)?;
+	fn serialise(&self, stream: &mut Sstream) -> Result<()> {
+		self.0.serialise(stream)?;
+		self.1.serialise(stream)?;
 
 		Ok(())
 	}
@@ -63,19 +55,15 @@ where
 	T0: Serialise,
 	T1: Serialise,
 	T2: Serialise, {
-	const SERIALISED_SIZE: usize =
-		T0::SERIALISED_SIZE
-		+ T1::SERIALISED_SIZE
-		+ T2::SERIALISED_SIZE;
+	const MAX_SERIALISED_SIZE: usize =
+		T0::MAX_SERIALISED_SIZE
+		+ T1::MAX_SERIALISED_SIZE
+		+ T2::MAX_SERIALISED_SIZE;
 
-	fn serialise(&self, buf: &mut [u8]) -> Result<()> {
-		debug_assert_eq!(buf.len(), Self::SERIALISED_SIZE);
-
-		let mut stream = Sstream::new(buf);
-
-		stream.append(&self.0)?;
-		stream.append(&self.1)?;
-		stream.append(&self.2)?;
+	fn serialise(&self, stream: &mut Sstream) -> Result<()> {
+		self.0.serialise(stream)?;
+		self.1.serialise(stream)?;
+		self.2.serialise(stream)?;
 
 		Ok(())
 	}
@@ -87,21 +75,17 @@ where
 	T1: Serialise,
 	T2: Serialise,
 	T3: Serialise, {
-	const SERIALISED_SIZE: usize =
-		T0::SERIALISED_SIZE
-		+ T1::SERIALISED_SIZE
-		+ T2::SERIALISED_SIZE
-		+ T3::SERIALISED_SIZE;
+	const MAX_SERIALISED_SIZE: usize =
+		T0::MAX_SERIALISED_SIZE
+		+ T1::MAX_SERIALISED_SIZE
+		+ T2::MAX_SERIALISED_SIZE
+		+ T3::MAX_SERIALISED_SIZE;
 
-		fn serialise(&self, buf: &mut [u8]) -> Result<()> {
-			debug_assert_eq!(buf.len(), Self::SERIALISED_SIZE);
-
-			let mut stream = Sstream::new(buf);
-
-		stream.append(&self.0)?;
-		stream.append(&self.1)?;
-		stream.append(&self.2)?;
-		stream.append(&self.3)?;
+		fn serialise(&self, stream: &mut Sstream) -> Result<()> {
+		self.0.serialise(stream)?;
+		self.1.serialise(stream)?;
+		self.2.serialise(stream)?;
+		self.3.serialise(stream)?;
 
 		Ok(())
 	}
@@ -114,23 +98,19 @@ where
 	T2: Serialise,
 	T3: Serialise,
 	T4: Serialise, {
-	const SERIALISED_SIZE: usize =
-		T0::SERIALISED_SIZE
-		+ T1::SERIALISED_SIZE
-		+ T2::SERIALISED_SIZE
-		+ T3::SERIALISED_SIZE
-		+ T4::SERIALISED_SIZE;
+	const MAX_SERIALISED_SIZE: usize =
+		T0::MAX_SERIALISED_SIZE
+		+ T1::MAX_SERIALISED_SIZE
+		+ T2::MAX_SERIALISED_SIZE
+		+ T3::MAX_SERIALISED_SIZE
+		+ T4::MAX_SERIALISED_SIZE;
 
-		fn serialise(&self, buf: &mut [u8]) -> Result<()> {
-			debug_assert_eq!(buf.len(), Self::SERIALISED_SIZE);
-
-			let mut stream = Sstream::new(buf);
-
-		stream.append(&self.0)?;
-		stream.append(&self.1)?;
-		stream.append(&self.2)?;
-		stream.append(&self.3)?;
-		stream.append(&self.4)?;
+		fn serialise(&self, stream: &mut Sstream) -> Result<()> {
+		self.0.serialise(stream)?;
+		self.1.serialise(stream)?;
+		self.2.serialise(stream)?;
+		self.3.serialise(stream)?;
+		self.4.serialise(stream)?;
 
 		Ok(())
 	}
@@ -144,25 +124,21 @@ where
 	T3: Serialise,
 	T4: Serialise,
 	T5: Serialise, {
-	const SERIALISED_SIZE: usize =
-		T0::SERIALISED_SIZE
-		+ T1::SERIALISED_SIZE
-		+ T2::SERIALISED_SIZE
-		+ T3::SERIALISED_SIZE
-		+ T4::SERIALISED_SIZE
-		+ T5::SERIALISED_SIZE;
+	const MAX_SERIALISED_SIZE: usize =
+		T0::MAX_SERIALISED_SIZE
+		+ T1::MAX_SERIALISED_SIZE
+		+ T2::MAX_SERIALISED_SIZE
+		+ T3::MAX_SERIALISED_SIZE
+		+ T4::MAX_SERIALISED_SIZE
+		+ T5::MAX_SERIALISED_SIZE;
 
-		fn serialise(&self, buf: &mut [u8]) -> Result<()> {
-			debug_assert_eq!(buf.len(), Self::SERIALISED_SIZE);
-
-			let mut stream = Sstream::new(buf);
-
-		stream.append(&self.0)?;
-		stream.append(&self.1)?;
-		stream.append(&self.2)?;
-		stream.append(&self.3)?;
-		stream.append(&self.4)?;
-		stream.append(&self.5)?;
+		fn serialise(&self, stream: &mut Sstream) -> Result<()> {
+		self.0.serialise(stream)?;
+		self.1.serialise(stream)?;
+		self.2.serialise(stream)?;
+		self.3.serialise(stream)?;
+		self.4.serialise(stream)?;
+		self.5.serialise(stream)?;
 
 		Ok(())
 	}
@@ -177,27 +153,23 @@ where
 	T4: Serialise,
 	T5: Serialise,
 	T6: Serialise, {
-	const SERIALISED_SIZE: usize =
-		T0::SERIALISED_SIZE
-		+ T1::SERIALISED_SIZE
-		+ T2::SERIALISED_SIZE
-		+ T3::SERIALISED_SIZE
-		+ T4::SERIALISED_SIZE
-		+ T5::SERIALISED_SIZE
-		+ T6::SERIALISED_SIZE;
+	const MAX_SERIALISED_SIZE: usize =
+		T0::MAX_SERIALISED_SIZE
+		+ T1::MAX_SERIALISED_SIZE
+		+ T2::MAX_SERIALISED_SIZE
+		+ T3::MAX_SERIALISED_SIZE
+		+ T4::MAX_SERIALISED_SIZE
+		+ T5::MAX_SERIALISED_SIZE
+		+ T6::MAX_SERIALISED_SIZE;
 
-		fn serialise(&self, buf: &mut [u8]) -> Result<()> {
-			debug_assert_eq!(buf.len(), Self::SERIALISED_SIZE);
-
-			let mut stream = Sstream::new(buf);
-
-		stream.append(&self.0)?;
-		stream.append(&self.1)?;
-		stream.append(&self.2)?;
-		stream.append(&self.3)?;
-		stream.append(&self.4)?;
-		stream.append(&self.5)?;
-		stream.append(&self.6)?;
+		fn serialise(&self, stream: &mut Sstream) -> Result<()> {
+		self.0.serialise(stream)?;
+		self.1.serialise(stream)?;
+		self.2.serialise(stream)?;
+		self.3.serialise(stream)?;
+		self.4.serialise(stream)?;
+		self.5.serialise(stream)?;
+		self.6.serialise(stream)?;
 
 		Ok(())
 	}
@@ -213,29 +185,25 @@ where
 	T5: Serialise,
 	T6: Serialise,
 	T7: Serialise, {
-	const SERIALISED_SIZE: usize =
-		T0::SERIALISED_SIZE
-		+ T1::SERIALISED_SIZE
-		+ T2::SERIALISED_SIZE
-		+ T3::SERIALISED_SIZE
-		+ T4::SERIALISED_SIZE
-		+ T5::SERIALISED_SIZE
-		+ T6::SERIALISED_SIZE
-		+ T7::SERIALISED_SIZE;
+	const MAX_SERIALISED_SIZE: usize =
+		T0::MAX_SERIALISED_SIZE
+		+ T1::MAX_SERIALISED_SIZE
+		+ T2::MAX_SERIALISED_SIZE
+		+ T3::MAX_SERIALISED_SIZE
+		+ T4::MAX_SERIALISED_SIZE
+		+ T5::MAX_SERIALISED_SIZE
+		+ T6::MAX_SERIALISED_SIZE
+		+ T7::MAX_SERIALISED_SIZE;
 
-		fn serialise(&self, buf: &mut [u8]) -> Result<()> {
-			debug_assert_eq!(buf.len(), Self::SERIALISED_SIZE);
-
-			let mut stream = Sstream::new(buf);
-
-		stream.append(&self.0)?;
-		stream.append(&self.1)?;
-		stream.append(&self.2)?;
-		stream.append(&self.3)?;
-		stream.append(&self.4)?;
-		stream.append(&self.5)?;
-		stream.append(&self.6)?;
-		stream.append(&self.7)?;
+		fn serialise(&self, stream: &mut Sstream) -> Result<()> {
+		self.0.serialise(stream)?;
+		self.1.serialise(stream)?;
+		self.2.serialise(stream)?;
+		self.3.serialise(stream)?;
+		self.4.serialise(stream)?;
+		self.5.serialise(stream)?;
+		self.6.serialise(stream)?;
+		self.7.serialise(stream)?;
 
 		Ok(())
 	}
@@ -252,31 +220,27 @@ where
 	T6: Serialise,
 	T7: Serialise,
 	T8: Serialise, {
-	const SERIALISED_SIZE: usize =
-		T0::SERIALISED_SIZE
-		+ T1::SERIALISED_SIZE
-		+ T2::SERIALISED_SIZE
-		+ T3::SERIALISED_SIZE
-		+ T4::SERIALISED_SIZE
-		+ T5::SERIALISED_SIZE
-		+ T6::SERIALISED_SIZE
-		+ T7::SERIALISED_SIZE
-		+ T8::SERIALISED_SIZE;
+	const MAX_SERIALISED_SIZE: usize =
+		T0::MAX_SERIALISED_SIZE
+		+ T1::MAX_SERIALISED_SIZE
+		+ T2::MAX_SERIALISED_SIZE
+		+ T3::MAX_SERIALISED_SIZE
+		+ T4::MAX_SERIALISED_SIZE
+		+ T5::MAX_SERIALISED_SIZE
+		+ T6::MAX_SERIALISED_SIZE
+		+ T7::MAX_SERIALISED_SIZE
+		+ T8::MAX_SERIALISED_SIZE;
 
-		fn serialise(&self, buf: &mut [u8]) -> Result<()> {
-			debug_assert_eq!(buf.len(), Self::SERIALISED_SIZE);
-
-			let mut stream = Sstream::new(buf);
-
-		stream.append(&self.0)?;
-		stream.append(&self.1)?;
-		stream.append(&self.2)?;
-		stream.append(&self.3)?;
-		stream.append(&self.4)?;
-		stream.append(&self.5)?;
-		stream.append(&self.6)?;
-		stream.append(&self.7)?;
-		stream.append(&self.8)?;
+		fn serialise(&self, stream: &mut Sstream) -> Result<()> {
+		self.0.serialise(stream)?;
+		self.1.serialise(stream)?;
+		self.2.serialise(stream)?;
+		self.3.serialise(stream)?;
+		self.4.serialise(stream)?;
+		self.5.serialise(stream)?;
+		self.6.serialise(stream)?;
+		self.7.serialise(stream)?;
+		self.8.serialise(stream)?;
 
 		Ok(())
 	}
@@ -294,33 +258,29 @@ where
 	T7: Serialise,
 	T8: Serialise,
 	T9: Serialise, {
-	const SERIALISED_SIZE: usize =
-		T0::SERIALISED_SIZE
-		+ T1::SERIALISED_SIZE
-		+ T2::SERIALISED_SIZE
-		+ T3::SERIALISED_SIZE
-		+ T4::SERIALISED_SIZE
-		+ T5::SERIALISED_SIZE
-		+ T6::SERIALISED_SIZE
-		+ T7::SERIALISED_SIZE
-		+ T8::SERIALISED_SIZE
-		+ T9::SERIALISED_SIZE;
+	const MAX_SERIALISED_SIZE: usize =
+		T0::MAX_SERIALISED_SIZE
+		+ T1::MAX_SERIALISED_SIZE
+		+ T2::MAX_SERIALISED_SIZE
+		+ T3::MAX_SERIALISED_SIZE
+		+ T4::MAX_SERIALISED_SIZE
+		+ T5::MAX_SERIALISED_SIZE
+		+ T6::MAX_SERIALISED_SIZE
+		+ T7::MAX_SERIALISED_SIZE
+		+ T8::MAX_SERIALISED_SIZE
+		+ T9::MAX_SERIALISED_SIZE;
 
-		fn serialise(&self, buf: &mut [u8]) -> Result<()> {
-			debug_assert_eq!(buf.len(), Self::SERIALISED_SIZE);
-
-			let mut stream = Sstream::new(buf);
-
-		stream.append(&self.0)?;
-		stream.append(&self.1)?;
-		stream.append(&self.2)?;
-		stream.append(&self.3)?;
-		stream.append(&self.4)?;
-		stream.append(&self.5)?;
-		stream.append(&self.6)?;
-		stream.append(&self.7)?;
-		stream.append(&self.8)?;
-		stream.append(&self.9)?;
+		fn serialise(&self, stream: &mut Sstream) -> Result<()> {
+		self.0.serialise(stream)?;
+		self.1.serialise(stream)?;
+		self.2.serialise(stream)?;
+		self.3.serialise(stream)?;
+		self.4.serialise(stream)?;
+		self.5.serialise(stream)?;
+		self.6.serialise(stream)?;
+		self.7.serialise(stream)?;
+		self.8.serialise(stream)?;
+		self.9.serialise(stream)?;
 
 		Ok(())
 	}
@@ -339,35 +299,31 @@ where
 	T8:  Serialise,
 	T9:  Serialise,
 	T10: Serialise, {
-	const SERIALISED_SIZE: usize =
-		T0::SERIALISED_SIZE
-		+ T1::SERIALISED_SIZE
-		+ T2::SERIALISED_SIZE
-		+ T3::SERIALISED_SIZE
-		+ T4::SERIALISED_SIZE
-		+ T5::SERIALISED_SIZE
-		+ T6::SERIALISED_SIZE
-		+ T7::SERIALISED_SIZE
-		+ T8::SERIALISED_SIZE
-		+ T9::SERIALISED_SIZE
-		+ T10::SERIALISED_SIZE;
+	const MAX_SERIALISED_SIZE: usize =
+		T0::MAX_SERIALISED_SIZE
+		+ T1::MAX_SERIALISED_SIZE
+		+ T2::MAX_SERIALISED_SIZE
+		+ T3::MAX_SERIALISED_SIZE
+		+ T4::MAX_SERIALISED_SIZE
+		+ T5::MAX_SERIALISED_SIZE
+		+ T6::MAX_SERIALISED_SIZE
+		+ T7::MAX_SERIALISED_SIZE
+		+ T8::MAX_SERIALISED_SIZE
+		+ T9::MAX_SERIALISED_SIZE
+		+ T10::MAX_SERIALISED_SIZE;
 
-		fn serialise(&self, buf: &mut [u8]) -> Result<()> {
-			debug_assert_eq!(buf.len(), Self::SERIALISED_SIZE);
-
-			let mut stream = Sstream::new(buf);
-
-		stream.append(&self.0)?;
-		stream.append(&self.1)?;
-		stream.append(&self.2)?;
-		stream.append(&self.3)?;
-		stream.append(&self.4)?;
-		stream.append(&self.5)?;
-		stream.append(&self.6)?;
-		stream.append(&self.7)?;
-		stream.append(&self.8)?;
-		stream.append(&self.9)?;
-		stream.append(&self.10)?;
+		fn serialise(&self, stream: &mut Sstream) -> Result<()> {
+		self.0.serialise(stream)?;
+		self.1.serialise(stream)?;
+		self.2.serialise(stream)?;
+		self.3.serialise(stream)?;
+		self.4.serialise(stream)?;
+		self.5.serialise(stream)?;
+		self.6.serialise(stream)?;
+		self.7.serialise(stream)?;
+		self.8.serialise(stream)?;
+		self.9.serialise(stream)?;
+		self.10.serialise(stream)?;
 
 		Ok(())
 	}
@@ -387,37 +343,33 @@ where
 	T9:  Serialise,
 	T10: Serialise,
 	T11: Serialise, {
-	const SERIALISED_SIZE: usize =
-		T0::SERIALISED_SIZE
-		+ T1::SERIALISED_SIZE
-		+ T2::SERIALISED_SIZE
-		+ T3::SERIALISED_SIZE
-		+ T4::SERIALISED_SIZE
-		+ T5::SERIALISED_SIZE
-		+ T6::SERIALISED_SIZE
-		+ T7::SERIALISED_SIZE
-		+ T8::SERIALISED_SIZE
-		+ T9::SERIALISED_SIZE
-		+ T10::SERIALISED_SIZE
-		+ T11::SERIALISED_SIZE;
+	const MAX_SERIALISED_SIZE: usize =
+		T0::MAX_SERIALISED_SIZE
+		+ T1::MAX_SERIALISED_SIZE
+		+ T2::MAX_SERIALISED_SIZE
+		+ T3::MAX_SERIALISED_SIZE
+		+ T4::MAX_SERIALISED_SIZE
+		+ T5::MAX_SERIALISED_SIZE
+		+ T6::MAX_SERIALISED_SIZE
+		+ T7::MAX_SERIALISED_SIZE
+		+ T8::MAX_SERIALISED_SIZE
+		+ T9::MAX_SERIALISED_SIZE
+		+ T10::MAX_SERIALISED_SIZE
+		+ T11::MAX_SERIALISED_SIZE;
 
-		fn serialise(&self, buf: &mut [u8]) -> Result<()> {
-			debug_assert_eq!(buf.len(), Self::SERIALISED_SIZE);
-
-			let mut stream = Sstream::new(buf);
-
-		stream.append(&self.0)?;
-		stream.append(&self.1)?;
-		stream.append(&self.2)?;
-		stream.append(&self.3)?;
-		stream.append(&self.4)?;
-		stream.append(&self.5)?;
-		stream.append(&self.6)?;
-		stream.append(&self.7)?;
-		stream.append(&self.8)?;
-		stream.append(&self.9)?;
-		stream.append(&self.10)?;
-		stream.append(&self.11)?;
+		fn serialise(&self, stream: &mut Sstream) -> Result<()> {
+		self.0.serialise(stream)?;
+		self.1.serialise(stream)?;
+		self.2.serialise(stream)?;
+		self.3.serialise(stream)?;
+		self.4.serialise(stream)?;
+		self.5.serialise(stream)?;
+		self.6.serialise(stream)?;
+		self.7.serialise(stream)?;
+		self.8.serialise(stream)?;
+		self.9.serialise(stream)?;
+		self.10.serialise(stream)?;
+		self.11.serialise(stream)?;
 
 		Ok(())
 	}

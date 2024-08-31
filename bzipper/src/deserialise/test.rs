@@ -19,7 +19,9 @@
 // er General Public License along with bzipper. If
 // not, see <https://www.gnu.org/licenses/>.
 
-use crate::{Deserialise, Serialise};
+use core::char;
+
+use crate::{Deserialise, Dstream, Serialise};
 
 #[test]
 fn test() {
@@ -46,9 +48,10 @@ fn test() {
 		($ty:ty: $data:expr => $value:expr) => {{
 			use ::bzipper::{Deserialise, Serialise};
 
-			let buf: [u8; <$ty as Serialise>::SERIALISED_SIZE] = $data;
+			let mut buf: [u8; <$ty as Serialise>::MAX_SERIALISED_SIZE] = $data;
+			let stream = Dstream::new(&mut buf);
 
-			let left  = <$ty as Deserialise>::deserialise(&buf).unwrap();
+			let left  = <$ty as Deserialise>::deserialise(&stream).unwrap();
 			let right = $value;
 
 			assert_eq!(left, right);
@@ -79,6 +82,8 @@ fn test() {
 		0xFF, 0x0F, 0xEF, 0x1F, 0xDF, 0x2F, 0xCF, 0x3F,
 		0xBF, 0x4F, 0xAF, 0x5F, 0x9F, 0x6F, 0x8F, 0x7F,
 	] => 0xFF_0F_EF_1F_DF_2F_CF_3F_BF_4F_AF_5F_9F_6F_8F_7F);
+
+	test!(char: [0x00, 0x00, 0xFF, 0xFD] => char::REPLACEMENT_CHARACTER);
 
 	test!([char; 0x5]: [
 		0x00, 0x00, 0x03, 0xBB, 0x00, 0x00, 0x03, 0x91,

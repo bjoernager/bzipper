@@ -19,16 +19,17 @@
 // er General Public License along with bzipper. If
 // not, see <https://www.gnu.org/licenses/>.
 
-use crate::{Deserialise, Error, Result};
+use crate::{Error, Result};
 
 use core::cell::Cell;
+use core::fmt::{Debug, Formatter};
 
-/// Byte stream for deserialisation.
+/// Byte stream suitable for deserialisation.
 ///
-/// This type borrows a slice, keeping track internally of the used bytes.
+/// This type borrows a buffer, keeping track internally of the used bytes.
 pub struct Dstream<'a> {
-	data: &'a [u8],
-	pos:  Cell<usize>,
+	pub(in crate) data: &'a [u8],
+	pub(in crate) pos:  Cell<usize>,
 }
 
 impl<'a> Dstream<'a> {
@@ -37,22 +38,84 @@ impl<'a> Dstream<'a> {
 	#[must_use]
 	pub const fn new(data: &'a [u8]) -> Self { Self { data, pos: Cell::new(0x0) } }
 
-	/// Deserialises an object from the stream.
-	///
-	/// # Errors
-	///
-	/// If the stream doesn't hold at least the amount of bytes specified by [`SERIALISED_SIZE`](crate::Serialise::SERIALISED_SIZE), an [`EndOfStream`](Error::EndOfStream) error is returned.
+	/// Takes (borrows) raw bytes from the stream.
 	#[inline]
-	pub fn take<T: Deserialise>(&self) -> Result<T> {
+	pub fn read(&self, count: usize) -> Result<&[u8]> {
 		let rem = self.data.len() - self.pos.get();
-		let req = T::SERIALISED_SIZE;
+		let req = count;
 
-		if rem < req { return Err(Error::EndOfStream { req, rem }) };
+		if rem < req { return Err(Error::EndOfStream { req, rem }) }
 
 		let start = self.pos.get();
 		let stop  = start + req;
 
 		self.pos.set(stop);
-		T::deserialise(&self.data[start..stop])
+
+		let data = &self.data[start..stop];
+		Ok(data)
 	}
+
+	/// Gets a pointer to the first byte in the stream.
+	#[inline(always)]
+	#[must_use]
+	pub const fn as_ptr(&self) -> *const u8 { self.data.as_ptr() }
+
+	/// Gets a slice of the stream.
+	#[inline(always)]
+	#[must_use]
+	pub const fn as_slice(&self) -> &[u8] {
+		let ptr = self.as_ptr();
+		let len = self.len();
+
+		unsafe { core::slice::from_raw_parts(ptr, len) }
+	}
+
+	/// Gets the length of the stream.
+	#[inline(always)]
+	#[must_use]
+	pub const fn len(&self) -> usize { unsafe { self.pos.as_ptr().read() } }
+
+	/// Tests if the stream is empty.
+	///
+	/// If no deserialisations have been made at the time of calling, this method returns `false`.
+	#[inline(always)]
+	#[must_use]
+	pub const fn is_empty(&self) -> bool { self.len() == 0x0 }
+
+	/// Tests if the stream is full.
+	///
+	/// Note that zero-sized types such as [`()`](unit) can still be deserialised from this stream.
+	#[inline(always)]
+	#[must_use]
+	pub const fn is_full(&self) -> bool { self.len() == self.data.len() }
+}
+
+impl Debug for Dstream<'_> {
+	#[inline(always)]
+	fn fmt(&self, f: &mut Formatter) -> core::fmt::Result { Debug::fmt(self.as_slice(), f) }
+}
+
+impl<'a> From<&'a [u8]> for Dstream<'a> {
+	#[inline(always)]
+	fn from(value: &'a [u8]) -> Self { Self::new(value) }
+}
+
+impl<'a> From<&'a mut [u8]> for Dstream<'a> {
+	#[inline(always)]
+	fn from(value: &'a mut [u8]) -> Self { Self::new(value) }
+}
+
+impl PartialEq for Dstream<'_> {
+	#[inline(always)]
+	fn eq(&self, other: &Self) -> bool { self.as_slice() == other.as_slice() }
+}
+
+impl PartialEq<&[u8]> for Dstream<'_> {
+	#[inline(always)]
+	fn eq(&self, other: &&[u8]) -> bool { self.as_slice() == *other }
+}
+
+impl<const N: usize> PartialEq<[u8; N]> for Dstream<'_> {
+	#[inline(always)]
+	fn eq(&self, other: &[u8; N]) -> bool { self.as_slice() == other.as_slice() }
 }

@@ -24,16 +24,20 @@ mod test;
 
 use crate::{Error, Result, Sstream};
 
-use core::{convert::Infallible, marker::PhantomData};
+use core::{convert::Infallible, hint::unreachable_unchecked, marker::PhantomData};
 
 mod tuple;
 
-/// Denotes a type capable of being serialised.
+/// Denotes a type capable of serialisation.
 ///
 /// It is recommended to simply derive this trait for custom types.
-/// It can, however, be manually implemented:
+/// It can, however, also be manually implemented:
 ///
-/// ```
+/// ```rust
+/// // Manual implementation of custom type. This im-
+/// // plementation is equivalent to what would have
+/// // been derived.
+///
 /// use bzipper::{Result, Serialise, Sstream};
 ///
 /// struct Foo {
@@ -42,60 +46,46 @@ mod tuple;
 /// }
 ///
 /// impl Serialise for Foo {
-///     const SERIALISED_SIZE: usize = u16::SERIALISED_SIZE + f32::SERIALISED_SIZE;
+///     const MAX_SERIALISED_SIZE: usize = u16::MAX_SERIALISED_SIZE + f32::MAX_SERIALISED_SIZE;
 ///
-///     fn serialise(&self, buf: &mut [u8]) -> Result<()> {
-///         debug_assert_eq!(buf.len(), Self::SERIALISED_SIZE);
-///
+///     fn serialise(&self, stream: &mut Sstream) -> Result<()> {
 ///         // Serialise fields using chaining.
 ///
-///         let mut stream = Sstream::new(buf);
-///
-///         stream.append(&self.bar)?;
-///         stream.append(&self.baz)?;
+///         self.bar.serialise(stream)?;
+///         self.baz.serialise(stream)?;
 ///
 ///         Ok(())
 ///     }
 /// }
 /// ```
 ///
-/// Implementors of this trait should make sure that [`SERIALISED_SIZE`](Serialise::SERIALISED_SIZE) is properly defined.
-/// This value indicates the definitive size of any serialisation of the `Self` type.
+/// Implementors of this trait should make sure that [`MAX_SERIALISED_SIZE`](Self::MAX_SERIALISED_SIZE) is properly defined.
+/// This value indicates the definitively largest size of any serialisation of `Self`.
 pub trait Serialise: Sized {
-	/// The amount of bytes that result from a serialisation.
+	/// The maximum amount of bytes that can result from a serialisation.
 	///
 	/// Implementors of this trait should make sure that no serialisation (or deserialisation) uses more than the amount specified by this constant.
-	/// When using these traits, always assume that exactly this amount has or will be used.
-	const SERIALISED_SIZE: usize;
+	const MAX_SERIALISED_SIZE: usize;
 
-	/// Serialises `self` into a slice.
+	/// Serialises `self` into the given s-stream.
 	///
-	/// In most cases it is wiser to chain serialisations using [`Sstream`] instead of using this method directly.
+	/// This method must **never** write more bytes than specified by [`MAX_SERIALISED_SIZE`](Self::MAX_SERIALISED_SIZE).
+	/// Doing so is considered a logic error.
 	///
 	/// # Errors
 	///
-	/// If serialisation failed, e.g. by an unencodable value being provided, an error is returned.
-	///
-	/// # Panics
-	///
-	/// This method will usually panic if the provided slice has a length *less* than the value of `SERIALISED_SIZE`.
-	/// Official implementations of this trait (including those that are derived) always panic in debug mode if the provided slice has a length that is different at all.
-	fn serialise(&self, buf: &mut [u8]) -> Result<()>;
+	/// If serialisation fails, e.g. by an unencodable value being provided, an error is returned.
+	fn serialise(&self, stream: &mut Sstream) -> Result<()>;
 }
 
 macro_rules! impl_numeric {
 	($ty:ty) => {
 		impl ::bzipper::Serialise for $ty {
-			const SERIALISED_SIZE: usize = size_of::<$ty>();
+			const MAX_SERIALISED_SIZE: usize = size_of::<$ty>();
 
 			#[inline]
-			fn serialise(&self, buf: &mut [u8]) -> Result<()> {
-				debug_assert_eq!(buf.len(), Self::SERIALISED_SIZE);
-
-				::core::debug_assert_eq!(buf.len(), Self::SERIALISED_SIZE);
-
-				let data = self.to_be_bytes();
-				buf.copy_from_slice(&data);
+			fn serialise(&self, stream: &mut Sstream) -> Result<()> {
+				stream.write(&self.to_be_bytes())?;
 
 				Ok(())
 			}
@@ -106,101 +96,82 @@ macro_rules! impl_numeric {
 macro_rules! impl_non_zero {
 	($ty:ty) => {
 		impl ::bzipper::Serialise for ::core::num::NonZero<$ty> {
-			const SERIALISED_SIZE: usize = ::core::mem::size_of::<$ty>();
+			const MAX_SERIALISED_SIZE: usize = ::core::mem::size_of::<$ty>();
 
 			#[inline(always)]
-			fn serialise(&self, buf: &mut [u8]) -> Result<()> {
-				debug_assert_eq!(buf.len(), Self::SERIALISED_SIZE);
-
-				self.get().serialise(buf)
-			}
+			fn serialise(&self, stream: &mut Sstream) -> Result<()> { self.get().serialise(stream) }
 		}
 	};
 }
 
 impl<T: Serialise, const N: usize> Serialise for [T; N] {
-	const SERIALISED_SIZE: usize = T::SERIALISED_SIZE * N;
+	const MAX_SERIALISED_SIZE: usize = T::MAX_SERIALISED_SIZE * N;
 
-	fn serialise(&self, buf: &mut [u8]) -> Result<()> {
-		debug_assert_eq!(buf.len(), Self::SERIALISED_SIZE);
-
-		let mut stream = Sstream::new(buf);
-
-		for v in self { stream.append(v)? }
+	fn serialise(&self, stream: &mut Sstream) -> Result<()> {
+		for v in self { v.serialise(stream)? }
 
 		Ok(())
 	}
 }
 
 impl Serialise for bool {
-	const SERIALISED_SIZE: usize = u8::SERIALISED_SIZE;
+	const MAX_SERIALISED_SIZE: usize = u8::MAX_SERIALISED_SIZE;
 
 	#[inline(always)]
-	fn serialise(&self, buf: &mut [u8]) -> Result<()> {
-		debug_assert_eq!(buf.len(), Self::SERIALISED_SIZE);
-
-		u8::from(*self).serialise(buf)
+	fn serialise(&self, stream: &mut Sstream) -> Result<()> {
+		u8::from(*self).serialise(stream)
 	}
 }
 
 impl Serialise for char {
-	const SERIALISED_SIZE: usize = u32::SERIALISED_SIZE;
+	const MAX_SERIALISED_SIZE: usize = u32::MAX_SERIALISED_SIZE;
 
 	#[inline(always)]
-	fn serialise(&self, buf: &mut [u8]) -> Result<()> {
-		debug_assert_eq!(buf.len(), Self::SERIALISED_SIZE);
-
-		u32::from(*self).serialise(buf)
+	fn serialise(&self, stream: &mut Sstream) -> Result<()> {
+		u32::from(*self).serialise(stream)
 	}
 
 }
 
 // Especially useful for `Result<T, Infallible>`.
-// *If* that is needed, of course.
+// *If* that is even needed, of course.
 impl Serialise for Infallible {
-	const SERIALISED_SIZE: usize = 0x0;
+	const MAX_SERIALISED_SIZE: usize = 0x0;
 
 	#[inline(always)]
-	fn serialise(&self, _buf: &mut [u8]) -> Result<()> { unreachable!() }
+	fn serialise(&self, _stream: &mut Sstream) -> Result<()> { unsafe { unreachable_unchecked() } }
 
 }
 
 impl Serialise for isize {
-	const SERIALISED_SIZE: usize = i32::SERIALISED_SIZE;
+	const MAX_SERIALISED_SIZE: usize = i32::MAX_SERIALISED_SIZE;
 
 	#[inline]
-	fn serialise(&self, buf: &mut [u8]) -> Result<()> {
-		debug_assert_eq!(buf.len(), Self::SERIALISED_SIZE);
-
+	fn serialise(&self, stream: &mut Sstream) -> Result<()> {
 		let value = i32::try_from(*self)
-			.map_err(|_| Error::IsizeOutOfRange { value: *self })?;
+			.map_err(|_| Error::IsizeOutOfRange(*self))?;
 
-		value.serialise(buf)
+		value.serialise(stream)
 	}
 }
 
 impl<T: Serialise> Serialise for Option<T> {
-	const SERIALISED_SIZE: usize = bool::SERIALISED_SIZE + T::SERIALISED_SIZE;
+	const MAX_SERIALISED_SIZE: usize = bool::MAX_SERIALISED_SIZE + T::MAX_SERIALISED_SIZE;
 
-	fn serialise(&self, buf: &mut [u8]) -> Result<()> {
-		debug_assert_eq!(buf.len(), Self::SERIALISED_SIZE);
-
+	fn serialise(&self, stream: &mut Sstream) -> Result<()> {
 		// The first element is of type `bool` and is
 		// called the "sign." It signifies whether there is
-		// a following element or not. The remaining bytes
-		// are preserved if `self` is `None`.
-
-		let mut stream = Sstream::new(buf);
+		// a following element or not.
 
 		match *self {
 			None => {
-				stream.append(&false)?;
+				false.serialise(stream)?;
 				// No need to zero-fill.
 			},
 
 			Some(ref v) => {
-				stream.append(&true)?;
-				stream.append(v)?;
+				true.serialise(stream)?;
+				v.serialise(stream)?;
 			},
 		};
 
@@ -209,37 +180,30 @@ impl<T: Serialise> Serialise for Option<T> {
 }
 
 impl<T> Serialise for PhantomData<T> {
-	const SERIALISED_SIZE: usize = size_of::<Self>();
+	const MAX_SERIALISED_SIZE: usize = size_of::<Self>();
 
 	#[inline(always)]
-	fn serialise(&self, buf: &mut [u8]) -> Result<()> {
-		debug_assert_eq!(buf.len(), Self::SERIALISED_SIZE);
-
-		Ok(())
-	}
+	fn serialise(&self, _stream: &mut Sstream) -> Result<()> { Ok(()) }
 }
 
 impl<T, E> Serialise for core::result::Result<T, E>
 where
 	T: Serialise,
 	E: Serialise, {
-	const SERIALISED_SIZE: usize = bool::SERIALISED_SIZE + if size_of::<T>() > size_of::<E>() { size_of::<T>() } else { size_of::<E>() };
+	const MAX_SERIALISED_SIZE: usize = bool::MAX_SERIALISED_SIZE + if size_of::<T>() > size_of::<E>() { size_of::<T>() } else { size_of::<E>() };
 
-	fn serialise(&self, buf: &mut [u8]) -> Result<()> {
-		debug_assert_eq!(buf.len(), Self::SERIALISED_SIZE);
-
-		let mut stream = Sstream::new(buf);
-
+	fn serialise(&self, stream: &mut Sstream) -> Result<()> {
 		// Remember the descriminant.
+
 		match *self {
 			Ok(ref v) => {
-				stream.append(&false)?;
-				stream.append(v)?;
+				false.serialise(stream)?;
+				v.serialise(stream)?;
 			},
 
 			Err(ref e) => {
-				stream.append(&true)?;
-				stream.append(e)?;
+				true.serialise(stream)?;
+				e.serialise(stream)?;
 			},
 		};
 
@@ -248,26 +212,20 @@ where
 }
 
 impl Serialise for () {
-	const SERIALISED_SIZE: usize = size_of::<Self>();
+	const MAX_SERIALISED_SIZE: usize = 0x0;
 
 	#[inline(always)]
-	fn serialise(&self, buf: &mut [u8]) -> Result<()> {
-		debug_assert_eq!(buf.len(), Self::SERIALISED_SIZE);
-
-		Ok(())
-	}
+	fn serialise(&self, _stream: &mut Sstream) -> Result<()> { Ok(()) }
 }
 
 impl Serialise for usize {
-	const SERIALISED_SIZE: Self = u32::SERIALISED_SIZE;
+	const MAX_SERIALISED_SIZE: Self = u32::MAX_SERIALISED_SIZE;
 
-	fn serialise(&self, buf: &mut [u8]) -> Result<()> {
-		debug_assert_eq!(buf.len(), Self::SERIALISED_SIZE);
-
+	fn serialise(&self, stream: &mut Sstream) -> Result<()> {
 		let value = u32::try_from(*self)
-			.map_err(|_| Error::UsizeOutOfRange { value: *self })?;
+			.map_err(|_| Error::UsizeOutOfRange(*self))?;
 
-		value.serialise(buf)
+		value.serialise(stream)
 	}
 }
 

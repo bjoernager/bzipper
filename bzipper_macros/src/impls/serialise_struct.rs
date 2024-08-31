@@ -33,14 +33,10 @@ use syn::{
 pub fn serialise_struct(data: &DataStruct) -> TokenStream {
 	if matches!(data.fields, Fields::Unit) {
 		quote! {
-			const SERIALISED_SIZE: usize = 0x0;
+			const MAX_SERIALISED_SIZE: usize = 0x0;
 
 			#[inline(always)]
-			fn serialise(&self, buf: &mut [u8]) -> ::bzipper::Result<()> {
-				::core::debug_assert_eq!(buf.len(), Self::SERIALISED_SIZE);
-
-				Ok(())
-			}
+			fn serialise(&self, stream: &mut ::bzipper::Sstream) -> ::bzipper::Result<()> { Ok(()) }
 		}
 	} else {
 		let mut serialised_size = Punctuated::<TokenStream, Token![+]>::new();
@@ -53,21 +49,17 @@ pub fn serialise_struct(data: &DataStruct) -> TokenStream {
 				.as_ref()
 				.map_or_else(|| Index::from(index).to_token_stream(), ToTokens::to_token_stream);
 
-			serialised_size.push(quote! { <#ty as ::bzipper::Serialise>::SERIALISED_SIZE });
+			serialised_size.push(quote! { <#ty as ::bzipper::Serialise>::MAX_SERIALISED_SIZE });
 
-			chain_commands.push(quote! { stream.append(&self.#name)? });
+			chain_commands.push(quote! { self.#name.serialise(stream)? });
 		}
 
 		chain_commands.push_punct(Token![;](Span::call_site()));
 
 		quote! {
-			const SERIALISED_SIZE: usize = #serialised_size;
+			const MAX_SERIALISED_SIZE: usize = #serialised_size;
 
-			fn serialise(&self, buf: &mut [u8]) -> ::bzipper::Result<()> {
-				::core::debug_assert_eq!(buf.len(), Self::SERIALISED_SIZE);
-
-				let mut stream = ::bzipper::Sstream::new(buf);
-
+			fn serialise(&self, stream: &mut ::bzipper::Sstream) -> ::bzipper::Result<()> {
 				#chain_commands
 
 				Ok(())

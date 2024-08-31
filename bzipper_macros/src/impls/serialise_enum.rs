@@ -38,15 +38,15 @@ pub fn serialise_enum(data: &DataEnum) -> TokenStream {
 		let variant_name = &variant.ident;
 
 		let discriminant = u32::try_from(index)
-			.expect("enumeration discriminants must be representable in `u32`");
+			.expect("enumeration discriminants must be representable as `u32`");
 
 		// Discriminant size:
-		serialised_size.push(quote! { <u32 as ::bzipper::Serialise>::SERIALISED_SIZE });
+		serialised_size.push(quote! { <u32 as ::bzipper::Serialise>::MAX_SERIALISED_SIZE });
 
 		let mut captures = Punctuated::<Capture, Token![,]>::new();
 
 		let mut chain_commands = Punctuated::<TokenStream, Token![;]>::new();
-		chain_commands.push(quote! { stream.append(&#discriminant)? });
+		chain_commands.push(quote! { #discriminant.serialise(stream)? });
 
 		for (index, field) in variant.fields.iter().enumerate() {
 			let field_ty = &field.ty;
@@ -55,14 +55,14 @@ pub fn serialise_enum(data: &DataEnum) -> TokenStream {
 				.as_ref()
 				.map_or_else(|| Ident::new(&format!("v{index}"), Span::call_site()), Clone::clone);
 
-			serialised_size.push(quote! { <#field_ty as ::bzipper::Serialise>::SERIALISED_SIZE });
+			serialised_size.push(quote! { <#field_ty as ::bzipper::Serialise>::MAX_SERIALISED_SIZE });
 
 			captures.push(Capture {
 				ref_token: Token![ref](Span::call_site()),
 				ident:     field_name.clone(),
 			});
 
-			chain_commands.push(quote! { stream.append(#field_name)? });
+			chain_commands.push(quote! { #field_name.serialise(stream)? });
 		}
 
 		chain_commands.push_punct(Token![;](Span::call_site()));
@@ -90,14 +90,11 @@ pub fn serialise_enum(data: &DataEnum) -> TokenStream {
 	size_tests.push(quote! { { core::unreachable!(); } });
 
 	quote! {
-		const SERIALISED_SIZE: usize = const { #size_tests };
+		const MAX_SERIALISED_SIZE: usize = const { #size_tests };
 
-		fn serialise(&self, buf: &mut [u8]) -> ::bzipper::Result<()> {
-			::core::debug_assert_eq!(buf.len(), Self::SERIALISED_SIZE);
-
-			let mut stream = ::bzipper::Sstream::new(buf);
-
+		fn serialise(&self, stream: &mut ::bzipper::Sstream) -> ::bzipper::Result<()> {
 			match (*self) { #match_arms }
+
 			Ok(())
 		}
 	}

@@ -31,15 +31,12 @@ use core::num::NonZero;
 
 mod tuple;
 
-/// Types capable of being deserialised.
-///
-/// This trait requires [`Serialise`] also being implemented as it relies on the [`SERIALISED_SIZE`](crate::Serialise::SERIALISED_SIZE) constant.
-pub trait Deserialise: Serialise + Sized {
-	/// Deserialises a slice into an object.
+/// Denotes a type capable of deserialisation.
+pub trait Deserialise: Sized {
+	/// Deserialises an object from the given d-stream.
 	///
-	/// This function must **never** take more bytes than specified by [`SERIALISED_SIZE`](crate::Serialise::SERIALISED_SIZE).
+	/// This method must **never** read more bytes than specified by [`MAX_SERIALISED_SIZE`](crate::Serialise::MAX_SERIALISED_SIZE) (if [`Serialise`] is defined, that is).
 	/// Doing so is considered a logic error.
-	/// Likewise, providing more than this amount is also disfavoured.
 	///
 	/// # Errors
 	///
@@ -47,22 +44,20 @@ pub trait Deserialise: Serialise + Sized {
 	///
 	/// # Panics
 	///
-	/// This method will usually panic if the provided slice has a length *less* than the value of `SERIALISED_SIZE`.
+	/// This method will usually panic if the provided slice has a length *less* than the value of `MAX_SERIALISED_SIZE`.
 	/// Official implementations of this trait (including those that are derived) always panic in debug mode if the provided slice has a length that is different at all.
-	fn deserialise(data: &[u8]) -> Result<Self>;
+	fn deserialise(stream: &Dstream) -> Result<Self>;
 }
 
 macro_rules! impl_numeric {
 	($ty:ty) => {
 		impl ::bzipper::Deserialise for $ty {
-			fn deserialise(data: &[u8]) -> ::bzipper::Result<Self> {
-				::core::debug_assert_eq!(data.len(), <Self as ::bzipper::Serialise>::SERIALISED_SIZE);
-
-				const SIZE: usize = ::core::mem::size_of::<$ty>();
-
-				let data = data
-					.get(0x0..SIZE)
-					.ok_or(::bzipper::Error::EndOfStream { req: SIZE, rem: data.len() })?
+			#[inline]
+			fn deserialise(stream: &Dstream) -> ::bzipper::Result<Self> {
+				let data = stream
+					.read(Self::MAX_SERIALISED_SIZE)
+					.unwrap()
+					//.ok_or(::bzipper::Error::EndOfStream { req: Self::MAX_SERIALISED_SIZE, rem: data.len() })?
 					.try_into()
 					.unwrap();
 
@@ -75,34 +70,29 @@ macro_rules! impl_numeric {
 macro_rules! impl_non_zero {
 	($ty:ty) => {
 		impl ::bzipper::Deserialise for NonZero<$ty> {
-			fn deserialise(data: &[u8]) -> ::bzipper::Result<Self> {
-				::core::debug_assert_eq!(data.len(), <Self as ::bzipper::Serialise>::SERIALISED_SIZE);
+			#[inline]
+			fn deserialise(stream: &Dstream) -> ::bzipper::Result<Self> {
+				let value = <$ty as ::bzipper::Deserialise>::deserialise(stream)?;
 
-				let value = <$ty as ::bzipper::Deserialise>::deserialise(data)?;
+				let value = NonZero::new(value)
+					.ok_or(Error::NullInteger)?;
 
-				NonZero::new(value)
-					.ok_or(Error::NullInteger)
+				Ok(value)
 			}
 		}
 	};
 }
 
-impl<T, const N: usize> Deserialise for [T; N]
-where
-	T: Deserialise {
-	fn deserialise(data: &[u8]) -> Result<Self> {
-		debug_assert_eq!(data.len(), Self::SERIALISED_SIZE);
-
+impl<T: Deserialise, const N: usize> Deserialise for [T; N] {
+	#[inline]
+	fn deserialise(stream: &Dstream) -> Result<Self> {
 		// Initialise the array incrementally.
 
  		let mut buf: [MaybeUninit<T>; N] = unsafe { MaybeUninit::uninit().assume_init() };
-		let mut pos = 0x0;
 
 		for item in &mut buf {
-			let range = pos..pos + T::SERIALISED_SIZE;
-
-			pos = range.end;
-			item.write(Deserialise::deserialise(&data[range])?);
+			let value = T::deserialise(stream)?;
+			item.write(value);
 		}
 
 		// This should be safe as `MaybeUninit<T>` is
@@ -118,83 +108,80 @@ where
 }
 
 impl Deserialise for bool {
-	fn deserialise(data: &[u8]) -> Result<Self> {
-		debug_assert_eq!(data.len(), Self::SERIALISED_SIZE);
-
-		let value = u8::deserialise(data)?;
+	#[inline]
+	fn deserialise(stream: &Dstream) -> Result<Self> {
+		let value = u8::deserialise(stream)?;
 
 		match value {
 			0x00 => Ok(false),
 			0x01 => Ok(true),
-			_    => Err(Error::InvalidBoolean { value })
+			_    => Err(Error::InvalidBoolean(value))
 		}
 	}
 }
 
 impl Deserialise for char {
-	fn deserialise(data: &[u8]) -> Result<Self> {
-		debug_assert_eq!(data.len(), Self::SERIALISED_SIZE);
+	#[inline]
+	fn deserialise(stream: &Dstream) -> Result<Self> {
+		let value = u32::deserialise(stream)?;
 
-		let value = u32::deserialise(data)?;
+		let value = value
+			.try_into()
+			.map_err(|_| Error::InvalidCodePoint(value))?;
 
-		Self::from_u32(value)
-			.ok_or(Error::InvalidCodePoint { value })
+		Ok(value)
 	}
 }
 
 impl Deserialise for Infallible {
 	#[allow(clippy::panic_in_result_fn)]
 	#[inline(always)]
-	fn deserialise(_data: &[u8]) -> Result<Self> { panic!("cannot deserialise `Infallible` as it cannot be serialised to begin with") }
+	fn deserialise(_stream: &Dstream) -> Result<Self> { panic!("cannot deserialise `Infallible` as it cannot be serialised to begin with") }
 }
 
 impl Deserialise for isize {
-	fn deserialise(data: &[u8]) -> Result<Self> {
-		debug_assert_eq!(data.len(), Self::SERIALISED_SIZE);
+	#[inline]
+	fn deserialise(stream: &Dstream) -> Result<Self> {
+		let value = i32::deserialise(stream)?;
 
-		let value = i32::deserialise(data)?
-			.try_into().expect("unable to convert from `i32` to `isize`");
+		let value = value
+			.try_into()
+			.expect("unable to convert from `i32` to `isize`");
 
 		Ok(value)
 	}
 }
 
 impl<T: Deserialise> Deserialise for Option<T> {
-	fn deserialise(data: &[u8]) -> Result<Self> {
-		debug_assert_eq!(data.len(), Self::SERIALISED_SIZE);
+	#[allow(clippy::if_then_some_else_none)]
+	#[inline]
+	fn deserialise(stream: &Dstream) -> Result<Self> {
+		let sign = bool::deserialise(stream)?;
 
-		let stream = Dstream::new(data);
-
-		let sign = stream.take::<bool>()?;
-
-		if sign {
-			Ok(Some(stream.take::<T>()?))
+		let value = if sign {
+			Some(T::deserialise(stream)?)
 		} else {
-			Ok(None)
-		}
+			None
+		};
+
+		Ok(value)
 	}
 }
 
 impl<T> Deserialise for PhantomData<T> {
-	fn deserialise(data: &[u8]) -> Result<Self> {
-		debug_assert_eq!(data.len(), Self::SERIALISED_SIZE);
-
-		Ok(Self)
-	}
+	#[inline(always)]
+	fn deserialise(_stream: &Dstream) -> Result<Self> { Ok(Self) }
 }
 
 impl<T: Deserialise, E: Deserialise> Deserialise for core::result::Result<T, E> {
-	fn deserialise(data: &[u8]) -> Result<Self> {
-		debug_assert_eq!(data.len(), Self::SERIALISED_SIZE);
-
-		let stream = Dstream::new(data);
-
-		let sign = stream.take::<bool>()?;
+	#[inline]
+	fn deserialise(stream: &Dstream) -> Result<Self> {
+		let sign = bool::deserialise(stream)?;
 
 		let value = if sign {
-			Err(stream.take::<E>()?)
+			Err(E::deserialise(stream)?)
 		} else {
-			Ok(stream.take::<T>()?)
+			Ok(T::deserialise(stream)?)
 		};
 
 		Ok(value)
@@ -202,15 +189,18 @@ impl<T: Deserialise, E: Deserialise> Deserialise for core::result::Result<T, E> 
 }
 
 impl Deserialise for () {
-	fn deserialise(_data: &[u8]) -> Result<Self> { Ok(()) }
+	#[inline(always)]
+	fn deserialise(_stream: &Dstream) -> Result<Self> { Ok(()) }
 }
 
 impl Deserialise for usize {
-	fn deserialise(data: &[u8]) -> Result<Self> {
-		debug_assert_eq!(data.len(), Self::SERIALISED_SIZE);
+	#[inline]
+	fn deserialise(stream: &Dstream) -> Result<Self> {
+		let value = u32::deserialise(stream)?;
 
-		let value = u32::deserialise(data)?
-			.try_into().expect("unable to convert from `u32` to `usize`");
+		let value = value
+			.try_into()
+			.expect("must be able to convert from `u32` to `usize`");
 
 		Ok(value)
 	}

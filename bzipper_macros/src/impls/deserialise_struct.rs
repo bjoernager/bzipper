@@ -26,52 +26,35 @@ use syn::punctuated::Punctuated;
 
 #[must_use]
 pub fn deserialise_struct(data: &DataStruct) -> TokenStream {
-	if let Fields::Named(..) = data.fields {
-		let mut chain_commands = Punctuated::<TokenStream, Token![,]>::new();
-
-		for field in &data.fields {
-			let name = field.ident.as_ref().unwrap();
-			let ty   = &field.ty;
-
-			chain_commands.push(quote! { #name: stream.take::<#ty>()? });
-		}
-
-		quote! {
-			fn deserialise(data: &[u8]) -> ::bzipper::Result<Self> {
-				::core::debug_assert_eq!(data.len(), <Self as ::bzipper::Serialise>::SERIALISED_SIZE);
-
-				let stream = ::bzipper::Dstream::new(data);
-
-				Ok(Self { #chain_commands })
-			}
-		}
-	} else if let Fields::Unnamed(..) = data.fields {
-		let mut chain_commands = Punctuated::<TokenStream, Token![,]>::new();
-
-		for field in &data.fields {
-			let ty = &field.ty;
-
-			chain_commands.push(quote! { stream.take::<#ty>()? });
-		}
-
-		quote! {
-			fn deserialise(data: &[u8]) -> ::bzipper::Result<Self> {
-				::core::debug_assert_eq!(data.len(), <Self as ::bzipper::Serialise>::SERIALISED_SIZE);
-
-				let stream = ::bzipper::Dstream::new(data);
-
-				Ok(Self(#chain_commands))
-			}
-		}
-	} else {
-		// Fields::Unit
-
+	if matches!(data.fields, Fields::Unit) {
 		quote! {
 			#[inline(always)]
-			fn deserialise(data: &[u8]) -> ::bzipper::Result<Self> {
-				::core::debug_assert_eq!(data.len(), <Self as ::bzipper::Serialise>::SERIALISED_SIZE);
+			fn deserialise(_stream: &::bzipper::Dstream) -> ::bzipper::Result<Self> { Ok(Self) }
+		}
+	} else {
+		let mut chain_commands = Punctuated::<TokenStream, Token![,]>::new();
 
-				Ok(Self)
+		for field in &data.fields {
+			let command = field.ident
+				.as_ref()
+				.map_or_else(
+					||           quote! { Deserialise::deserialise(stream)? },
+					|field_name| quote! { #field_name: Deserialise::deserialise(stream)? }
+				);
+
+			chain_commands.push(command);
+		}
+
+		let value = if let Fields::Named(..) = data.fields {
+			quote! { Self { #chain_commands } }
+		} else {
+			quote! { Self(#chain_commands) }
+		};
+
+		quote! {
+			fn deserialise(stream: &::bzipper::Dstream) -> ::bzipper::Result<Self> {
+				let value = #value;
+				Ok(value)
 			}
 		}
 	}

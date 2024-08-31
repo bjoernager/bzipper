@@ -3,6 +3,29 @@
 This is the changelog of bzipper.
 See `"README.md"` for more information.
 
+## 0.7.0
+
+* Make `alloc` and `std` default features
+* Make serialisations variably sized again
+* Refactor derive implementations
+* Completely rework streams
+* Fix tuple deserialisation
+* Encode `FixedString` in UTF-8
+* Remove methods `from_chars` and `set_len` from `FixedString`
+* Rename `as_slice` and `as_mut_slice` methods in `FixedString` to `as_st` and `as_mut_str`
+* Add methods `as_bytes`, `push_str`, `chars`, `capacity`, and `char_indices` to `FixedString`
+* Rework `FixedString` traits
+* Remove `FixedIter`
+* Update lints
+* Add methods `set_len` and `set_len_unchecked` to `Buffer`
+* Elaborate docs
+* Update readme
+* Do not require `Serialise` for `Deserialise`
+* Rename `SERIALISED_SIZE` in `Serialise` to `MAX_SERIALISED_SIZE`
+* Use streams in `Serialise` and `Deserialise`
+* Drop `Serialise` requirement for `Buffer`
+* Add methods `with_capacity` and `capacity` to `Buffer`
+
 ## 0.6.2
 
 * Fix `Deserialise` derive for unit variants

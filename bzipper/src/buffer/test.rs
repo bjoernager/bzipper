@@ -25,11 +25,11 @@ use crate::{Buffer, Error};
 fn test_buffer() {
 	let mut buf = Buffer::<char>::new();
 
-	buf.write(&'\u{1F44D}').unwrap();
+	buf.write('\u{1F44D}').unwrap();
 	assert_eq!(buf, [0x00, 0x01, 0xF4, 0x4D].as_slice());
 
 	buf.as_mut_slice().copy_from_slice(&[0x00, 0x00, 0xD8, 0x00]);
-	assert!(matches!(buf.read(), Err(Error::InvalidCodePoint { value: 0xD800 })));
+	assert!(matches!(buf.read(), Err(Error::InvalidCodePoint(0xD800))));
 
 	buf.as_mut_slice().copy_from_slice(&[0x00, 0x00, 0xFF, 0x3A]);
 	assert_eq!(buf.read().unwrap(), '\u{FF3A}');
