@@ -9,7 +9,7 @@ readme      = "README.md"
 homepage    = "https://achernar.dk/index.php?p=bzipper"
 repository  = "https://mandelbrot.dk/bzipper/"
 license     = "LGPL-3.0-or-later"
-keywords    = ["api", "binary-encoding", "client", "encoding", "io", "network", "no-std", "protocol", "server"]
+keywords    = ["api", "encoding", "io", "network", "no-std"]
 categories  = ["encoding", "network-programming", "parsing"]
 
 [workspace.lints.clippy]

@@ -3,6 +3,10 @@
 This is the changelog of bzipper.
 See `README.md` for more information.
 
+## 0.8.1
+
+* Update package metadata
+
 ## 0.8.0
 
 * Rename `FixedString` to `SizedStr`
