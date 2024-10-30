@@ -19,16 +19,25 @@
 // er General Public License along with bZipper. If
 // not, see <https://www.gnu.org/licenses/>.
 
-//! Error variants.
-//!
-//! This module defines the error types used by bZipper.
-//! All of these types define the [`Error`](core::error::Error) trait.
+use core::error::Error;
+use core::fmt::{self, Display, Formatter};
 
-use crate::use_mod;
+/// An invalid UTF-8 sequence was encountered.
+#[derive(Debug)]
+#[non_exhaustive]
+pub struct Utf8Error {
+	/// The invalid UTF-8 octet.
+	pub value: u8,
 
-use_mod!(pub decode_error);
-use_mod!(pub encode_error);
-use_mod!(pub size_error);
-use_mod!(pub string_error);
-use_mod!(pub utf16_error);
-use_mod!(pub utf8_error);
+	/// The index of the invalid octet.
+	pub index: usize,
+}
+
+impl Display for Utf8Error {
+	#[inline(always)]
+	fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+		write!(f, "found invalid utf-8 octet {:#02X} at offset ({})", self.value, self.index)
+	}
+}
+
+impl Error for Utf8Error { }

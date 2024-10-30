@@ -19,16 +19,28 @@
 // er General Public License along with bZipper. If
 // not, see <https://www.gnu.org/licenses/>.
 
-//! Error variants.
-//!
-//! This module defines the error types used by bZipper.
-//! All of these types define the [`Error`](core::error::Error) trait.
+use proc_macro2::TokenStream;
+use quote::{quote, ToTokens};
+use syn::{DataStruct, Index};
 
-use crate::use_mod;
+#[must_use]
+pub fn encode_struct(data: &DataStruct) -> TokenStream {
+	let mut fields = Vec::new();
 
-use_mod!(pub decode_error);
-use_mod!(pub encode_error);
-use_mod!(pub size_error);
-use_mod!(pub string_error);
-use_mod!(pub utf16_error);
-use_mod!(pub utf8_error);
+	for (index, field) in data.fields.iter().enumerate() {
+		let name = field.ident
+			.as_ref()
+			.map_or_else(|| Index::from(index).to_token_stream(), ToTokens::to_token_stream);
+
+		fields.push(name);
+	}
+
+	quote! {
+		#[inline]
+		fn encode(&self, stream: &mut ::bzipper::OStream) -> ::core::result::Result<(), ::bzipper::error::EncodeError> {
+			#(::bzipper::Encode::encode(&self.#fields, stream)?;)*
+
+			Ok(())
+		}
+	}
+}

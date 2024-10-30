@@ -1,7 +1,98 @@
 # Changelog
 
 This is the changelog of bzipper.
-See `"README.md"` for more information.
+See `README.md` for more information.
+
+## 0.8.0
+
+* Rename `FixedString` to `SizedStr`
+* Implement `PartialEq<String>` and `PartialOrd<String>` for `SizedStr`
+* Add constructors `from_utf8` and `from_utf8_unchecked` to `SizedStr`
+* Remove `pop`, `push_str`, and `push` from `SizedStr`
+* Implement `FromIterator<char>` for `SizedStr`
+* Rename `Serialise` to `Encode`
+* Rename `Deserialise` to `Decode`
+* Remove `Sized` requirement for `Encode`
+* Add benchmarks
+* Update package metadata
+* Rename `Sstream` to `OStream`
+* Rename `Dstream` to `IStream`
+* Update readme
+* Refactor code
+* Update lints
+* Implement `Encode` and `Decode` for `IpAddr`, `Ipv4Addr`, `Ipv6Addr`, `Mutex`, `Box`, `RwLock`, `Rc`, `Arc`, `Wrapping`, `Saturating`, `AtomicBool`, `AtomicU8`, `AtomicU16`, `AtomicU32`, `AtomicU64`, `AtomicI8`, `AtomicI16`, `AtomicI32`, `AtomicI64`, `AtomicUsize`, `AtomicIsize`, `SocketAddrV4`, `SocketAddrV6`, `SocketAddr`, `Range`, `RangeFrom`, `RangeFull`, `RangeInclusive`, `RangeTo`, `RangeToInclusive`, `Bound`, `RefCell`, `String`, and `Vec`
+* Update docs
+* Add `SizedSlice` type
+* Add `SizedIter` type
+* Rename `Buffer` type to `Buf`
+* Remove `Add` and `AddAssign` implementations from `SizedStr`
+* Add *Features* section to readme
+* Honour explicit enumeration discriminants
+* Encode enumeration discriminants as `isize`
+* Add `SizedEncode` trait
+* Outsource `MAX_SERIALISED_SIZE` to `SizedEncode` as `MAX_ENCODED_SIZE`
+* Implement `Iterator`, `ExactSizeIterator`, `FusedIterator`, and `DoubleEndedIterator` for `SizedIter`
+* Implement `AsRef<[T]>` and `AsMut<[T]>` for `SizedIter<T, ..>`
+* Implement `Clone` for `SizedIter`
+* Add `as_slice` and `as_mut_slice` methods to `SizedIter`
+* Add `from_raw_parts` constructor and `into_raw_parts` destructor to `SizedSlice`
+* Add `set_len` method to `SizedSlice`
+* Add `len`, `is_empty`, `is_full`, and `capacity` methods to `SizedSlice`
+* Add `as_slice` and `as_mut_slice` methods to `SizedSlice`
+* Add `as_ptr` and `as_mut_ptr` methods to `SizedSlice`
+* Implement `AsMut<[T]>` and `AsRef<[T]>` for `SizedSlice<T, ..>`
+* Implement `Borrow<[T]>` and `BorrowMut<[T]>` for `SizedSlice<T, ..>`
+* Implement `Deref<[T]>` and `DerefMut<[T]>` for `SizedSlice<T, ..>`
+* Implement `Debug` for `SizedSlice`
+* Implement `Default` for `SizedSlice`
+* Implement `Clone` for `SizedSlice`
+* Implement `Encode`, `Decode`, and `SizedEncode` for `SizedSlice`
+* Implement `Eq` and `PartialEq` for `SizedSlice`
+* Implement `Ord` and `PartialOrd` for `SizedSlice`
+* Implement `From<[T; N]>` for `SizedSlice<T, N>`
+* Implement `Hash` for `SizedSlice`
+* Implement `Index` and `IndexMut` for `SizedSlice`
+* Implement `IntoIterator` for `SizedSlice` (including references hereto)
+* Implement `TryFrom<&[T]>` for `SizedSlice<T, ..>`
+* Implement `From<SizedSlice<T, ..>>` for `Vec<[T]>`
+* Implement `From<SizedSlice<T, ..>>` for `Box<[T]>`
+* Add `into_boxed_slice` and `into_vec` destructors to `SizedSlice`
+* Add `into_boxed_str` and `into_string` destructors to `SizedStr`
+* Bump Rust version to `1.83` for `bzipper`
+* Mark `SizedStr::as_mut_ptr` as const
+* Implement `FromIterator<T>` for `SizedSlice<T, ..>`
+* Make `SizedStr::new` take a `&str` object
+* Add `is_empty` and `is_full` methods to `Buf`
+* Disallow non-empty single-line functions
+* Add `SAFETY` comments
+* Implement `PartialEq<&mut [u8]>` and `PartialEq<[u8]>` for `Buf`
+* Implement `Index` and `IndexMut` for `Buf`
+* Add `from_raw_parts` constructor and `into_raw_parts` destructor to `Buf`
+* Add *Documentation* and *Contribution* sections to readme
+* Add *Copyright & Licence* section to readme
+* Add Clippy configuration file
+* Add more unit tests
+* Add debug assertions
+* Remove `as_ptr` and `as_slice` methods from `IStream` and `OStream`
+* Remove `len`, `is_empty`, and `is_full` methods from `IStream` and `OStream`
+* Unimplement all manually-implemented traits from `IStream` and `OStream`
+* Mark `new` and `write` in `OStream` as const
+* Mark the `read` method in `IStream` as const
+* Add `close` destructor to `OStream` and `IStream`
+* Implement `Encode` for `[T]` and `str`
+* Encode `usize` and `isize` as `u16` and `i16` again
+* Split `Error` type into `EncodeError`, `DecodeError`, `Utf8Error`, `Utf16Error`, `SizeError`, and `StringError`
+* Remove `Result` type
+* Add `error` module
+* Make `IStream::read` and `OSream::write` panic on error
+* Update logo
+* Add more examples to docs
+* Unmark all functions in `Buf` as const
+* Implement `From<SizedStr>` for `Box<str>`
+* Always implement `Freeze`, `RefUnwindSafe`, `Send`, `Sync`, `Unpin`, and `UnwindSafe` for `Buf`
+* Add *Examples* section to readme
+* Implement `SizedEncode` for all previous `Encode` types
+* Bump dependency versions
 
 ## 0.7.0
 

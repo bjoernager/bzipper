@@ -1,5 +1,5 @@
 [workspace]
-members  = ["bzipper", "bzipper_macros"]
+members  = ["bzipper", "bzipper_benchmarks", "bzipper_macros"]
 resolver = "2"
 
 [workspace.package]
@@ -9,6 +9,8 @@ readme      = "README.md"
 homepage    = "https://achernar.dk/index.php?p=bzipper"
 repository  = "https://mandelbrot.dk/bzipper/"
 license     = "LGPL-3.0-or-later"
+keywords    = ["api", "binary-encoding", "client", "encoding", "io", "network", "no-std", "protocol", "server"]
+categories  = ["encoding", "network-programming", "parsing"]
 
 [workspace.lints.clippy]
 as_ptr_cast_mut                    = "forbid"
@@ -80,9 +82,7 @@ match_bool                         = "warn"
 match_on_vec_items                 = "warn"
 match_same_arms                    = "warn"
 mismatching_type_param_order       = "warn"
-missing_const_for_fn               = "warn"
 mixed_read_write_in_expression     = "deny"
-must_use_candidate                 = "deny"
 mut_mut                            = "deny"
 mutex_atomic                       = "deny"
 mutex_integer                      = "deny"
@@ -106,7 +106,6 @@ pattern_type_mismatch              = "deny"
 ptr_as_ptr                         = "forbid"
 ptr_cast_constness                 = "forbid"
 pub_underscore_fields              = "deny"
-pub_with_shorthand                 = "deny"
 read_zero_byte_vec                 = "deny"
 redundant_clone                    = "deny"
 redundant_closure_for_method_calls = "warn"
@@ -121,6 +120,7 @@ return_self_not_must_use           = "deny"
 same_functions_in_if_condition     = "deny"
 same_name_method                   = "deny"
 self_named_module_files            = "deny"
+separated_literal_suffix           = "warn"
 single_char_pattern                = "warn"
 str_split_at_newline               = "warn"
 string_lit_as_bytes                = "deny"
@@ -138,7 +138,6 @@ unnecessary_self_imports           = "deny"
 unnecessary_wraps                  = "warn"
 unneeded_field_pattern             = "warn"
 unnested_or_patterns               = "warn"
-unseparated_literal_suffix         = "warn"
 unused_async                       = "warn"
 unused_peekable                    = "warn"
 unused_rounding                    = "warn"
@@ -149,6 +148,7 @@ useless_let_if_seq                 = "warn"
 verbose_bit_mask                   = "warn"
 verbose_file_reads                 = "warn"
 wildcard_dependencies              = "deny"
+zero_prefixed_literal              = "allow"
 zero_sized_map_values              = "deny"
 
 [profile.release]

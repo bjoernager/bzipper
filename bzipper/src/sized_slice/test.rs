@@ -19,16 +19,29 @@
 // er General Public License along with bZipper. If
 // not, see <https://www.gnu.org/licenses/>.
 
-//! Error variants.
-//!
-//! This module defines the error types used by bZipper.
-//! All of these types define the [`Error`](core::error::Error) trait.
+use alloc::vec::Vec;
+use bzipper::SizedSlice;
 
-use crate::use_mod;
+#[test]
+fn test_fixed_vec_from_iter() {
+	let f = |x: u32| -> u32 {
+		let x = f64::from(x);
 
-use_mod!(pub decode_error);
-use_mod!(pub encode_error);
-use_mod!(pub size_error);
-use_mod!(pub string_error);
-use_mod!(pub utf16_error);
-use_mod!(pub utf8_error);
+		let y = x.sin().powi(0x2) * 1000.0;
+
+		y as u32
+	};
+
+	let mut vec = Vec::new();
+
+	for x in 0x0..0x8 {
+		vec.push(f(x));
+	}
+
+	let vec: SizedSlice<_, 0x10> = vec.into_iter().collect();
+
+	assert_eq!(
+		vec,
+		[0, 708, 826, 19, 572, 919, 78, 431],
+	);
+}

@@ -19,16 +19,24 @@
 // er General Public License along with bZipper. If
 // not, see <https://www.gnu.org/licenses/>.
 
-//! Error variants.
-//!
-//! This module defines the error types used by bZipper.
-//! All of these types define the [`Error`](core::error::Error) trait.
+use core::error::Error;
+use core::fmt::{self, Display, Formatter};
 
-use crate::use_mod;
+/// A fixed-size buffer was too small.
+#[derive(Debug)]
+pub struct SizeError {
+	/// The required amount of bytes.
+	pub req: usize,
 
-use_mod!(pub decode_error);
-use_mod!(pub encode_error);
-use_mod!(pub size_error);
-use_mod!(pub string_error);
-use_mod!(pub utf16_error);
-use_mod!(pub utf8_error);
+	/// The total capacity of the buffer.
+	pub len: usize,
+}
+
+impl Display for SizeError {
+	#[inline(always)]
+	fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+		write!(f, "collection of size ({}) cannot hold ({}) elements", self.len, self.req)
+	}
+}
+
+impl Error for SizeError { }

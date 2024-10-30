@@ -19,16 +19,29 @@
 // er General Public License along with bZipper. If
 // not, see <https://www.gnu.org/licenses/>.
 
-//! Error variants.
-//!
-//! This module defines the error types used by bZipper.
-//! All of these types define the [`Error`](core::error::Error) trait.
+use bzipper::Buf;
+use bzipper::error::DecodeError;
 
-use crate::use_mod;
+#[test]
+fn test_buf_write_read() {
+	let mut buf = Buf::<char>::new();
 
-use_mod!(pub decode_error);
-use_mod!(pub encode_error);
-use_mod!(pub size_error);
-use_mod!(pub string_error);
-use_mod!(pub utf16_error);
-use_mod!(pub utf8_error);
+	macro_rules! test_read {
+		($pattern:pat$(,)?) => {{
+			match buf.read() {
+				$pattern => { }
+
+				value => panic!("value `{value:?}` does not match pattern `{}`", stringify!($pattern)),
+			}
+		}};
+	}
+
+	buf.write('\u{1F44D}').unwrap();
+	assert_eq!(buf, [0x00, 0x01, 0xF4, 0x4D].as_slice());
+
+	buf.copy_from_slice(&[0x00, 0x00, 0xD8, 0x00]);
+	test_read!(Err(DecodeError::InvalidCodePoint(0xD800)));
+
+	buf.copy_from_slice(&[0x00, 0x00, 0xFF, 0x3A]);
+	test_read!(Ok('\u{FF3A}'));
+}
