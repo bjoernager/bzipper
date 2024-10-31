@@ -25,6 +25,7 @@ mod test;
 use crate::{IStream, SizedEncode};
 use crate::error::{DecodeError, Utf8Error};
 
+use core::cell::{Cell, RefCell};
 use core::convert::Infallible;
 use core::hash::Hash;
 use core::marker::{PhantomData, PhantomPinned};
@@ -49,9 +50,6 @@ use core::ops::{
 };
 
 #[cfg(feature = "alloc")]
-use alloc::borrow::{Cow, ToOwned};
-
-#[cfg(feature = "alloc")]
 use std::boxed::Box;
 
 #[cfg(feature = "alloc")]
@@ -70,7 +68,7 @@ use alloc::rc::Rc;
 use alloc::sync::Arc;
 
 #[cfg(feature = "std")]
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 #[cfg(feature = "std")]
 use std::hash::BuildHasher;
@@ -179,7 +177,17 @@ impl<T: Decode> Decode for Bound<T> {
 impl<T: Decode> Decode for Box<T> {
 	#[inline(always)]
 	fn decode(stream: &mut IStream) -> Result<Self, DecodeError> {
-		let value = T::decode(stream)?;
+		let value = Decode::decode(stream)?;
+
+		let this = Self::new(value);
+		Ok(this)
+	}
+}
+
+impl<T: Decode> Decode for Cell<T> {
+	#[inline(always)]
+	fn decode(stream: &mut IStream) -> Result<Self, DecodeError> {
+		let value = Decode::decode(stream)?;
 
 		let this = Self::new(value);
 		Ok(this)
@@ -195,18 +203,6 @@ impl Decode for char {
 			.try_into()
 			.map_err(|_| DecodeError::InvalidCodePoint(value))?;
 
-		Ok(this)
-	}
-}
-
-#[cfg(feature = "alloc")]
-#[cfg_attr(doc, doc(cfg(feature = "alloc")))]
-impl<T: ToOwned<Owned = U>, U: Decode> Decode for Cow<'_, T> {
-	#[inline(always)]
-	fn decode(stream: &mut IStream) -> Result<Self, DecodeError> {
-		let value = U::decode(stream)?;
-
-		let this = Self::Owned(value);
 		Ok(this)
 	}
 }
@@ -230,6 +226,29 @@ where
 			let value = Decode::decode(stream)?;
 
 			this.insert(key, value);
+		}
+
+		Ok(this)
+	}
+}
+
+#[cfg(feature = "std")]
+#[cfg_attr(doc, doc(cfg(feature = "std")))]
+impl<T, S> Decode for HashSet<T, S>
+where
+	T: Decode + Eq + Hash,
+	S: BuildHasher + Default,
+	{
+	#[inline]
+	fn decode(stream: &mut IStream) -> Result<Self, DecodeError> {
+		let len = Decode::decode(stream)?;
+
+		let mut this = Self::with_capacity_and_hasher(len, Default::default());
+
+		for _ in 0x0..len {
+			let key = Decode::decode(stream)?;
+
+			this.insert(key);
 		}
 
 		Ok(this)
@@ -404,6 +423,16 @@ impl<T: Decode> Decode for Rc<T> {
 	#[inline(always)]
 	fn decode(stream: &mut IStream) -> Result<Self, DecodeError> {
 		Ok(Self::new(Decode::decode(stream)?))
+	}
+}
+
+impl<T: Decode> Decode for RefCell<T> {
+	#[inline(always)]
+	fn decode(stream: &mut IStream) -> Result<Self, DecodeError> {
+		let value = Decode::decode(stream)?;
+
+		let this = Self::new(value);
+		Ok(this)
 	}
 }
 

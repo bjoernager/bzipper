@@ -3,6 +3,16 @@
 This is the changelog of bzipper.
 See `README.md` for more information.
 
+## 0.10.0
+
+* Clean up code
+* Implement `Encode` and `Decode` for `Cell` and `HashSet`
+* Implement `SizedEncode` for `Cell`
+* Add missing `SizedEncode` implementations for `Cow`, `LazyCell`, and `LazyLock`
+* Unimplement `Decode` for `Cow`, `LazyCell`, and `LazyLock`
+* Add missing `Decode` implementations for `RefCell`
+* Fix feature flags for `SizedEncode` implementations of `Rc` and `Arc`
+
 ## 0.9.0
 
 * Implement `Encode` and `Decode` for `LinkedList`, `HashMap`, `Cow`, `PhantomPinned`, `LazyCell`, `LazyLock`
@@ -107,6 +117,7 @@ See `README.md` for more information.
 * Add *Examples* section to readme
 * Implement `SizedEncode` for all previous `Encode` types
 * Bump dependency versions
+* Implement `SizedEncode` for `IpAddr`, `Ipv4Addr`, `Ipv6Addr`, `Mutex`, `Box`, `RwLock`, `Rc`, `Arc`, `Wrapping`, `Saturating`, `AtomicBool`, `AtomicU8`, `AtomicU16`, `AtomicU32`, `AtomicU64`, `AtomicI8`, `AtomicI16`, `AtomicI32`, `AtomicI64`, `AtomicUsize`, `AtomicIsize`, `SocketAddrV4`, `SocketAddrV6`, `SocketAddr`, `Range`, `RangeFrom`, `RangeFull`, `RangeInclusive`, `RangeTo`, `RangeToInclusive`, `Bound`, and `RefCell`
 
 ## 0.7.0
 

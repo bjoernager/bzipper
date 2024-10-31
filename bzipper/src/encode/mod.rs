@@ -25,7 +25,7 @@ mod test;
 use crate::OStream;
 use crate::error::EncodeError;
 
-use core::cell::{LazyCell, RefCell};
+use core::cell::{Cell, LazyCell, RefCell};
 use core::convert::Infallible;
 use core::hash::BuildHasher;
 use core::hint::unreachable_unchecked;
@@ -71,7 +71,7 @@ use alloc::rc::Rc;
 use alloc::sync::Arc;
 
 #[cfg(feature = "std")]
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 #[cfg(feature = "std")]
 use std::sync::{LazyLock, Mutex, RwLock};
@@ -219,6 +219,13 @@ impl<T: Encode> Encode for Box<T> {
 	}
 }
 
+impl<T: Encode + Copy> Encode for Cell<T> {
+	#[inline(always)]
+	fn encode(&self, stream: &mut OStream) -> Result<(), EncodeError> {
+		self.get().encode(stream)
+	}
+}
+
 impl Encode for char {
 	#[inline(always)]
 	fn encode(&self, stream: &mut OStream) -> Result<(), EncodeError> {
@@ -248,6 +255,23 @@ where
 		for (key, value) in self {
 			key.encode(stream)?;
 			value.encode(stream)?;
+		}
+
+		Ok(())
+	}
+}
+
+#[cfg(feature = "std")]
+#[cfg_attr(doc, doc(cfg(feature = "std")))]
+impl<T, S> Encode for HashSet<T, S>
+where
+	T: Encode,
+	S: BuildHasher,
+	{
+	#[inline(always)]
+	fn encode(&self, stream: &mut OStream) -> Result<(), EncodeError> {
+		for key in self {
+			key.encode(stream)?;
 		}
 
 		Ok(())

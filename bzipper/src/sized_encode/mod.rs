@@ -24,7 +24,7 @@ mod test;
 
 use crate::Encode;
 
-use core::cell::RefCell;
+use core::cell::{Cell, LazyCell, RefCell};
 use core::convert::Infallible;
 use core::marker::PhantomData;
 use core::net::{
@@ -45,15 +45,22 @@ use core::ops::{
 	RangeTo,
 	RangeToInclusive,
 };
+use std::borrow::ToOwned;
+
+#[cfg(feature = "alloc")]
+use alloc::borrow::Cow;
 
 #[cfg(feature = "alloc")]
 use alloc::boxed::Box;
 
-#[cfg(feature = "std")]
-use std::rc::Rc;
+#[cfg(feature = "alloc")]
+use alloc::rc::Rc;
+
+#[cfg(feature = "alloc")]
+use alloc::sync::Arc;
 
 #[cfg(feature = "std")]
-use std::sync::{Arc, Mutex, RwLock};
+use std::sync::{LazyLock, Mutex, RwLock};
 
 /// Denotes a size-constrained, encodable type.
 ///
@@ -90,8 +97,8 @@ unsafe impl<T: SizedEncode, const N: usize> SizedEncode for [T; N] {
 	const MAX_ENCODED_SIZE: usize = T::MAX_ENCODED_SIZE * N;
 }
 
-#[cfg(feature = "std")]
-#[cfg_attr(doc, doc(cfg(feature = "std")))]
+#[cfg(feature = "alloc")]
+#[cfg_attr(doc, doc(cfg(feature = "alloc")))]
 unsafe impl<T: SizedEncode> SizedEncode for Arc<T> {
 	const MAX_ENCODED_SIZE: usize = T::MAX_ENCODED_SIZE;
 }
@@ -110,9 +117,18 @@ unsafe impl<T: SizedEncode> SizedEncode for Box<T> {
 	const MAX_ENCODED_SIZE: usize = T::MAX_ENCODED_SIZE;
 }
 
+unsafe impl<T: Copy + SizedEncode> SizedEncode for Cell<T> {
+	const MAX_ENCODED_SIZE: usize = T::MAX_ENCODED_SIZE;
+}
+
 unsafe impl SizedEncode for char {
 	const MAX_ENCODED_SIZE: usize = u32::MAX_ENCODED_SIZE;
+}
 
+#[cfg(feature = "alloc")]
+#[cfg_attr(doc, doc(cfg(feature = "alloc")))]
+unsafe impl<T: SizedEncode + ToOwned> SizedEncode for Cow<'_, T> {
+	const MAX_ENCODED_SIZE: usize = T::MAX_ENCODED_SIZE;
 }
 
 unsafe impl SizedEncode for Infallible {
@@ -133,6 +149,16 @@ unsafe impl SizedEncode for Ipv6Addr {
 
 unsafe impl SizedEncode for isize {
 	const MAX_ENCODED_SIZE: usize = i16::MAX_ENCODED_SIZE;
+}
+
+unsafe impl<T: SizedEncode> SizedEncode for LazyCell<T> {
+	const MAX_ENCODED_SIZE: usize = T::MAX_ENCODED_SIZE;
+}
+
+#[cfg(feature = "std")]
+#[cfg_attr(doc, doc(cfg(feature = "std")))]
+unsafe impl<T: SizedEncode> SizedEncode for LazyLock<T> {
+	const MAX_ENCODED_SIZE: usize = T::MAX_ENCODED_SIZE;
 }
 
 #[cfg(feature = "std")]
@@ -175,8 +201,8 @@ unsafe impl<T: SizedEncode> SizedEncode for RangeToInclusive<T> {
 	const MAX_ENCODED_SIZE: usize = T::MAX_ENCODED_SIZE;
 }
 
-#[cfg(feature = "std")]
-#[cfg_attr(doc, doc(cfg(feature = "std")))]
+#[cfg(feature = "alloc")]
+#[cfg_attr(doc, doc(cfg(feature = "alloc")))]
 unsafe impl<T: SizedEncode> SizedEncode for Rc<T> {
 	const MAX_ENCODED_SIZE: usize = T::MAX_ENCODED_SIZE;
 }
