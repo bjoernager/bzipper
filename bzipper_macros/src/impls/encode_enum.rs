@@ -44,7 +44,7 @@ pub fn encode_enum(data: &DataEnum) -> TokenStream {
 		let mut field_captures = Vec::new();
 
 		for (index, field) in variant.fields.iter().enumerate() {
-			let capture = Ident::new(&format!("v{index}"), Span::call_site());
+			let capture = Ident::new(&format!("value{index}"), Span::call_site());
 
 			field_names.push(&field.ident);
 			field_captures.push(capture);

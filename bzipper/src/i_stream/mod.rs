@@ -21,7 +21,7 @@
 
 use core::slice;
 
-/// Byte stream suitable for decoding.
+/// Byte stream suitable for input.
 pub struct IStream<'a> {
 	buf: &'a [u8],
 	pos: usize,

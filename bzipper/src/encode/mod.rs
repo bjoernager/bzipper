@@ -25,10 +25,11 @@ mod test;
 use crate::OStream;
 use crate::error::EncodeError;
 
-use core::cell::RefCell;
+use core::cell::{LazyCell, RefCell};
 use core::convert::Infallible;
+use core::hash::BuildHasher;
 use core::hint::unreachable_unchecked;
-use core::marker::PhantomData;
+use core::marker::{PhantomData, PhantomPinned};
 use core::net::{
 	IpAddr,
 	Ipv4Addr,
@@ -49,7 +50,13 @@ use core::ops::{
 };
 
 #[cfg(feature = "alloc")]
+use alloc::borrow::{Cow, ToOwned};
+
+#[cfg(feature = "alloc")]
 use alloc::boxed::Box;
+
+#[cfg(feature = "alloc")]
+use alloc::collections::LinkedList;
 
 #[cfg(feature = "alloc")]
 use alloc::string::String;
@@ -64,9 +71,10 @@ use alloc::rc::Rc;
 use alloc::sync::Arc;
 
 #[cfg(feature = "std")]
-use std::sync::{Mutex, RwLock};
+use std::collections::HashMap;
 
-mod tuple;
+#[cfg(feature = "std")]
+use std::sync::{LazyLock, Mutex, RwLock};
 
 /// Denotes a type capable of being encoded.
 ///
@@ -116,54 +124,34 @@ pub trait Encode {
 	fn encode(&self, stream: &mut OStream) -> Result<(), EncodeError>;
 }
 
-macro_rules! impl_numeric {
-	($ty:ty$(,)?) => {
-		impl ::bzipper::Encode for $ty {
-			#[inline]
-			fn encode(&self, stream: &mut OStream) -> ::core::result::Result<(), ::bzipper::error::EncodeError> {
-				stream.write(&self.to_be_bytes());
-
-				Ok(())
-			}
-		}
-	};
+impl<T: Encode> Encode for &T {
+	#[inline(always)]
+	fn encode(&self, stream: &mut OStream) -> Result<(), EncodeError> {
+		T::encode(self, stream)
+	}
 }
 
-macro_rules! impl_non_zero {
-	($ty:ty$(,)?) => {
-		impl ::bzipper::Encode for ::core::num::NonZero<$ty> {
-			#[inline(always)]
-			fn encode(&self, stream: &mut OStream) -> ::core::result::Result<(), ::bzipper::error::EncodeError> {
-				self.get().encode(stream)
-			}
-		}
-	};
+impl<T: Encode> Encode for &mut T {
+	#[inline(always)]
+	fn encode(&self, stream: &mut OStream) -> Result<(), EncodeError> {
+		T::encode(self, stream)
+	}
 }
 
-macro_rules! impl_atomic {
-	{
-		width: $width:literal,
-		ty: $ty:ty,
-		atomic_ty: $atomic_ty:ty$(,)?
-	} => {
-		/// This implementation uses the same format as the atomic's primitive counterpart.
-		/// The atomic object itself is read with the [`Relaxed`](core::sync::atomic::Ordering) ordering scheme.
-		#[cfg(target_has_atomic = $width)]
-		#[cfg_attr(doc, doc(cfg(target_has_atomic = $width)))]
-		impl ::bzipper::Encode for $atomic_ty {
-			#[inline(always)]
-			fn encode(&self, stream: &mut ::bzipper::OStream) -> ::core::result::Result<(), ::bzipper::error::EncodeError> {
-				self.load(::std::sync::atomic::Ordering::Relaxed).encode(stream)
-			}
-		}
-	};
+/// Implemented for tuples with up to twelve members.
+#[cfg_attr(doc, doc(fake_variadic))]
+impl<T: Encode> Encode for (T, ) {
+	#[inline(always)]
+	fn encode(&self, stream: &mut OStream) -> Result<(), EncodeError> {
+		self.0.encode(stream)
+	}
 }
 
 impl<T: Encode, const N: usize> Encode for [T; N] {
 	#[inline(always)]
 	fn encode(&self, stream: &mut OStream) -> Result<(), EncodeError> {
-		for v in self {
-			v.encode(stream)?;
+		for value in self {
+			value.encode(stream)?;
 		}
 
 		Ok(())
@@ -175,8 +163,8 @@ impl<T: Encode> Encode for [T] {
 	fn encode(&self, stream: &mut OStream) -> Result<(), EncodeError> {
 		self.len().encode(stream)?;
 
-		for v in self {
-			v.encode(stream)?;
+		for value in self {
+			value.encode(stream)?;
 		}
 
 		Ok(())
@@ -202,20 +190,18 @@ impl Encode for bool {
 impl<T: Encode> Encode for Bound<T> {
 	#[inline(always)]
 	fn encode(&self, stream: &mut OStream) -> Result<(), EncodeError> {
-		use Bound::*;
-
 		match *self {
-			Included(ref bound) => {
+			Self::Included(ref bound) => {
 				0x0u8.encode(stream)?;
 				bound.encode(stream)?;
 			}
 
-			Excluded(ref bound) => {
+			Self::Excluded(ref bound) => {
 				0x1u8.encode(stream)?;
 				bound.encode(stream)?;
 			}
 
-			Unbounded => {
+			Self::Unbounded => {
 				0x2u8.encode(stream)?;
 			}
 		}
@@ -240,6 +226,34 @@ impl Encode for char {
 	}
 }
 
+#[cfg(feature = "alloc")]
+#[cfg_attr(doc, doc(cfg(feature = "alloc")))]
+impl<T: Encode + ToOwned> Encode for Cow<'_, T> {
+	#[inline(always)]
+	fn encode(&self, stream: &mut OStream) -> Result<(), EncodeError> {
+		T::encode(self, stream)
+	}
+}
+
+#[cfg(feature = "std")]
+#[cfg_attr(doc, doc(cfg(feature = "std")))]
+impl<K, V, S> Encode for HashMap<K, V, S>
+where
+	K: Encode,
+	V: Encode,
+	S: BuildHasher,
+	{
+	#[inline(always)]
+	fn encode(&self, stream: &mut OStream) -> Result<(), EncodeError> {
+		for (key, value) in self {
+			key.encode(stream)?;
+			value.encode(stream)?;
+		}
+
+		Ok(())
+	}
+}
+
 // Especially useful for `Result<T, Infallible>`.
 // **If** that is even needed, of course.
 impl Encode for Infallible {
@@ -256,17 +270,15 @@ impl Encode for Infallible {
 impl Encode for IpAddr {
 	#[inline(always)]
 	fn encode(&self, stream: &mut OStream) -> Result<(), EncodeError> {
-		use IpAddr::*;
-
 		// The discriminant here is the IP version.
 
 		match *self {
-			V4(ref addr) => {
+			Self::V4(ref addr) => {
 				0x4u8.encode(stream)?;
 				addr.encode(stream)?;
 			}
 
-			V6(ref addr) => {
+			Self::V6(ref addr) => {
 				0x6u8.encode(stream)?;
 				addr.encode(stream)?;
 			}
@@ -306,6 +318,35 @@ impl Encode for isize {
 	}
 }
 
+impl<T: Encode> Encode for LazyCell<T> {
+	#[inline(always)]
+	fn encode(&self, stream: &mut OStream) -> Result<(), EncodeError> {
+		T::encode(self, stream)
+	}
+}
+
+#[cfg(feature = "std")]
+#[cfg_attr(doc, doc(cfg(feature = "std")))]
+impl<T: Encode> Encode for LazyLock<T> {
+	#[inline(always)]
+	fn encode(&self, stream: &mut OStream) -> Result<(), EncodeError> {
+		T::encode(self, stream)
+	}
+}
+
+#[cfg(feature = "alloc")]
+#[cfg_attr(doc, doc(cfg(feature = "alloc")))]
+impl<T: Encode> Encode for LinkedList<T> {
+	#[inline(always)]
+	fn encode(&self, stream: &mut OStream) -> Result<(), EncodeError> {
+		for value in self {
+			value.encode(stream)?;
+		}
+
+		Ok(())
+	}
+}
+
 #[cfg(feature = "std")]
 #[cfg_attr(doc, doc(cfg(feature = "std")))]
 impl<T: Encode> Encode for Mutex<T> {
@@ -313,7 +354,7 @@ impl<T: Encode> Encode for Mutex<T> {
 	fn encode(&self, stream: &mut OStream) -> Result<(), EncodeError> {
 		self
 			.lock()
-			.or_else(|e| Ok(e.into_inner()))?
+			.unwrap_or_else(std::sync::PoisonError::into_inner)
 			.encode(stream)
 	}
 }
@@ -323,10 +364,6 @@ impl<T: Encode> Encode for Mutex<T> {
 /// The contained value is encoded proceeding the sign.
 impl<T: Encode> Encode for Option<T> {
 	fn encode(&self, stream: &mut OStream) -> Result<(), EncodeError> {
-		// The first element is of type `bool` and is
-		// called the "sign." It signifies whether there is
-		// a following element or not.
-
 		match *self {
 			None => false.encode(stream)?,
 
@@ -341,6 +378,13 @@ impl<T: Encode> Encode for Option<T> {
 }
 
 impl<T> Encode for PhantomData<T> {
+	#[inline(always)]
+	fn encode(&self, _stream: &mut OStream) -> Result<(), EncodeError> {
+		Ok(())
+	}
+}
+
+impl Encode for PhantomPinned {
 	#[inline(always)]
 	fn encode(&self, _stream: &mut OStream) -> Result<(), EncodeError> {
 		Ok(())
@@ -463,19 +507,17 @@ impl<T: Encode> Encode for Saturating<T> {
 /// This implementation encoded as discriminant denoting the IP version of the address (i.e. `4` for IPv4 and `6` for IPv6).
 /// This is then followed by the respective address' own encoding (either [`SocketAddrV4`] or [`SocketAddrV6`]).
 impl Encode for SocketAddr {
-	#[inline(always)]
+	#[inline]
 	fn encode(&self, stream: &mut OStream) -> Result<(), EncodeError> {
-		use SocketAddr::*;
-
 		// The discriminant here is the IP version.
 
 		match *self {
-			V4(ref addr) => {
+			Self::V4(ref addr) => {
 				0x4u8.encode(stream)?;
 				addr.encode(stream)?;
 			}
 
-			V6(ref addr) => {
+			Self::V6(ref addr) => {
 				0x6u8.encode(stream)?;
 				addr.encode(stream)?;
 			}
@@ -564,6 +606,69 @@ impl<T: Encode> Encode for Wrapping<T> {
 	}
 }
 
+macro_rules! impl_numeric {
+	($ty:ty$(,)?) => {
+		impl ::bzipper::Encode for $ty {
+			#[inline]
+			fn encode(&self, stream: &mut OStream) -> ::core::result::Result<(), ::bzipper::error::EncodeError> {
+				stream.write(&self.to_be_bytes());
+
+				Ok(())
+			}
+		}
+	};
+}
+
+macro_rules! impl_tuple {
+	{
+		$($captures:ident: $tys:ident),+$(,)?
+	} => {
+		#[doc(hidden)]
+		impl<$($tys: ::bzipper::Encode, )*> ::bzipper::Encode for ($($tys, )*) {
+			#[inline(always)]
+			fn encode(&self, stream: &mut ::bzipper::OStream) -> ::core::result::Result<(), ::bzipper::error::EncodeError> {
+				let ($(ref $captures, )*) = *self;
+
+				$(
+					$captures.encode(stream)?;
+				)*
+
+				Ok(())
+			}
+		}
+	};
+}
+
+macro_rules! impl_non_zero {
+	($ty:ty$(,)?) => {
+		impl ::bzipper::Encode for ::core::num::NonZero<$ty> {
+			#[inline(always)]
+			fn encode(&self, stream: &mut OStream) -> ::core::result::Result<(), ::bzipper::error::EncodeError> {
+				self.get().encode(stream)
+			}
+		}
+	};
+}
+
+macro_rules! impl_atomic {
+	{
+		width: $width:literal,
+		ty: $ty:ty,
+		atomic_ty: $atomic_ty:ty$(,)?
+	} => {
+		/// This implementation uses the same format as the atomic's primitive counterpart.
+		/// The atomic object itself is read with the [`Relaxed`](core::sync::atomic::Ordering) ordering scheme.
+		#[cfg(target_has_atomic = $width)]
+		#[cfg_attr(doc, doc(cfg(target_has_atomic = $width)))]
+		impl ::bzipper::Encode for $atomic_ty {
+			#[inline(always)]
+			fn encode(&self, stream: &mut ::bzipper::OStream) -> ::core::result::Result<(), ::bzipper::error::EncodeError> {
+				self.load(::std::sync::atomic::Ordering::Relaxed).encode(stream)
+			}
+		}
+	};
+}
+
 //impl_numeric!(f128);
 //impl_numeric!(f16);
 impl_numeric!(f32);
@@ -578,6 +683,116 @@ impl_numeric!(u16);
 impl_numeric!(u32);
 impl_numeric!(u64);
 impl_numeric!(u8);
+
+impl_tuple! {
+	value0: T0,
+	value1: T1,
+}
+
+impl_tuple! {
+	value0: T0,
+	value1: T1,
+	value2: T2,
+}
+
+impl_tuple! {
+	value0: T0,
+	value1: T1,
+	value2: T2,
+	value3: T3,
+}
+
+impl_tuple! {
+	value0: T0,
+	value1: T1,
+	value2: T2,
+	value3: T3,
+	value4: T4,
+}
+
+impl_tuple! {
+	value0: T0,
+	value1: T1,
+	value2: T2,
+	value3: T3,
+	value4: T4,
+	value5: T5,
+}
+
+impl_tuple! {
+	value0: T0,
+	value1: T1,
+	value2: T2,
+	value3: T3,
+	value4: T4,
+	value5: T5,
+	value6: T6,
+}
+
+impl_tuple! {
+	value0: T0,
+	value1: T1,
+	value2: T2,
+	value3: T3,
+	value4: T4,
+	value5: T5,
+	value6: T6,
+	value7: T7,
+}
+
+impl_tuple! {
+	value0: T0,
+	value1: T1,
+	value2: T2,
+	value3: T3,
+	value4: T4,
+	value5: T5,
+	value6: T6,
+	value7: T7,
+	value8: T8,
+}
+
+impl_tuple! {
+	value0: T0,
+	value1: T1,
+	value2: T2,
+	value3: T3,
+	value4: T4,
+	value5: T5,
+	value6: T6,
+	value7: T7,
+	value8: T8,
+	value9: T9,
+}
+
+impl_tuple! {
+	value0:  T0,
+	value1:  T1,
+	value2:  T2,
+	value3:  T3,
+	value4:  T4,
+	value5:  T5,
+	value6:  T6,
+	value7:  T7,
+	value8:  T8,
+	value9:  T9,
+	value10: T10,
+}
+
+impl_tuple! {
+	value0:  T0,
+	value1:  T1,
+	value2:  T2,
+	value3:  T3,
+	value4:  T4,
+	value5:  T5,
+	value6:  T6,
+	value7:  T7,
+	value8:  T8,
+	value9:  T9,
+	value10: T10,
+	value11: T11,
+}
 
 impl_non_zero!(i128);
 impl_non_zero!(i16);

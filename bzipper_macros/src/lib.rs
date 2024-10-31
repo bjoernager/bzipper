@@ -25,7 +25,7 @@
 
 use proc_macro::TokenStream;
 use quote::quote;
-use syn::{parse_macro_input, Data, DeriveInput};
+use syn::{Data, DeriveInput};
 
 macro_rules! use_mod {
 	($vis:vis $name:ident) => {
@@ -43,7 +43,7 @@ mod impls;
 
 #[proc_macro_derive(Decode)]
 pub fn derive_decode(input: TokenStream) -> TokenStream {
-	let input = parse_macro_input!(input as DeriveInput);
+	let input = syn::parse_macro_input!(input as DeriveInput);
 
 	let impl_body = match input.data {
 		Data::Enum(  ref data) => impls::decode_enum(  data),
@@ -73,7 +73,7 @@ pub fn derive_decode(input: TokenStream) -> TokenStream {
 
 #[proc_macro_derive(Encode)]
 pub fn derive_encode(input: TokenStream) -> TokenStream {
-	let input = parse_macro_input!(input as DeriveInput);
+	let input = syn::parse_macro_input!(input as DeriveInput);
 
 	let impl_body = match input.data {
 		Data::Enum(  ref data) => impls::encode_enum(  data),
@@ -103,7 +103,7 @@ pub fn derive_encode(input: TokenStream) -> TokenStream {
 
 #[proc_macro_derive(SizedEncode)]
 pub fn derive_sized_encode(input: TokenStream) -> TokenStream {
-	let input = parse_macro_input!(input as DeriveInput);
+	let input = syn::parse_macro_input!(input as DeriveInput);
 
 	let encode_impl_body = match input.data {
 		Data::Enum(  ref data) => impls::encode_enum(  data),

@@ -26,7 +26,8 @@ use crate::{IStream, SizedEncode};
 use crate::error::{DecodeError, Utf8Error};
 
 use core::convert::Infallible;
-use core::marker::PhantomData;
+use core::hash::Hash;
+use core::marker::{PhantomData, PhantomPinned};
 use core::mem::MaybeUninit;
 use core::net::{
 	IpAddr,
@@ -48,6 +49,15 @@ use core::ops::{
 };
 
 #[cfg(feature = "alloc")]
+use alloc::borrow::{Cow, ToOwned};
+
+#[cfg(feature = "alloc")]
+use std::boxed::Box;
+
+#[cfg(feature = "alloc")]
+use std::collections::LinkedList;
+
+#[cfg(feature = "alloc")]
 use alloc::string::String;
 
 #[cfg(feature = "alloc")]
@@ -60,9 +70,13 @@ use alloc::rc::Rc;
 use alloc::sync::Arc;
 
 #[cfg(feature = "std")]
-use std::sync::{Mutex, RwLock};
+use std::collections::HashMap;
 
-mod tuple;
+#[cfg(feature = "std")]
+use std::hash::BuildHasher;
+
+#[cfg(feature = "std")]
+use std::sync::{Mutex, RwLock};
 
 // Should we require `Encode` for `Decode`?
 
@@ -76,53 +90,17 @@ pub trait Decode: Sized {
 	fn decode(stream: &mut IStream) -> Result<Self, DecodeError>;
 }
 
-macro_rules! impl_numeric {
-	($ty:ty$(,)?) => {
-		impl ::bzipper::Decode for $ty {
-			#[inline]
-			fn decode(stream: &mut IStream) -> ::core::result::Result<Self, ::bzipper::error::DecodeError> {
-				let data = stream
-					.read(Self::MAX_ENCODED_SIZE)
-					.try_into()
-					.expect(concat!("mismatch between `", stringify!($ty), "::MAX_ENCODED_SIZE` and buffer needed by `", stringify!($ty), "::from_be_bytes`"));
+/// Implemented for tuples with up to twelve members.
+#[cfg_attr(doc, doc(fake_variadic))]
+impl<T> Decode for (T, )
+where
+	T: Decode, {
+	#[inline(always)]
+	fn decode(stream: &mut IStream) -> Result<Self, DecodeError> {
+		let value = (Decode::decode(stream)?, );
 
-				let this = Self::from_be_bytes(data);
-				Ok(this)
-			}
-		}
-	};
-}
-
-macro_rules! impl_non_zero {
-	($ty:ty$(,)?) => {
-		impl ::bzipper::Decode for NonZero<$ty> {
-			#[inline]
-			fn decode(stream: &mut IStream) -> ::core::result::Result<Self, ::bzipper::error::DecodeError> {
-				let value = <$ty as ::bzipper::Decode>::decode(stream)?;
-
-				let this = NonZero::new(value)
-					.ok_or(::bzipper::error::DecodeError::NullInteger)?;
-
-				Ok(this)
-			}
-		}
-	};
-}
-
-macro_rules! impl_atomic {
-	{
-		width: $width:literal,
-		ty: $ty:ty$(,)?
-	} => {
-		#[cfg(target_has_atomic = $width)]
-		#[cfg_attr(doc, doc(cfg(target_has_atomic = $width)))]
-		impl ::bzipper::Decode for $ty {
-			#[inline(always)]
-			fn decode(stream: &mut ::bzipper::IStream) -> ::core::result::Result<Self, ::bzipper::error::DecodeError> {
-				Ok(Self::new(::bzipper::Decode::decode(stream)?))
-			}
-		}
-	};
+		Ok(value)
+	}
 }
 
 impl<T: Decode, const N: usize> Decode for [T; N] {
@@ -196,6 +174,18 @@ impl<T: Decode> Decode for Bound<T> {
 	}
 }
 
+#[cfg(feature = "alloc")]
+#[cfg_attr(doc, doc(cfg(feature = "alloc")))]
+impl<T: Decode> Decode for Box<T> {
+	#[inline(always)]
+	fn decode(stream: &mut IStream) -> Result<Self, DecodeError> {
+		let value = T::decode(stream)?;
+
+		let this = Self::new(value);
+		Ok(this)
+	}
+}
+
 impl Decode for char {
 	#[inline]
 	fn decode(stream: &mut IStream) -> Result<Self, DecodeError> {
@@ -204,6 +194,43 @@ impl Decode for char {
 		let this = value
 			.try_into()
 			.map_err(|_| DecodeError::InvalidCodePoint(value))?;
+
+		Ok(this)
+	}
+}
+
+#[cfg(feature = "alloc")]
+#[cfg_attr(doc, doc(cfg(feature = "alloc")))]
+impl<T: ToOwned<Owned = U>, U: Decode> Decode for Cow<'_, T> {
+	#[inline(always)]
+	fn decode(stream: &mut IStream) -> Result<Self, DecodeError> {
+		let value = U::decode(stream)?;
+
+		let this = Self::Owned(value);
+		Ok(this)
+	}
+}
+
+#[cfg(feature = "std")]
+#[cfg_attr(doc, doc(cfg(feature = "std")))]
+impl<K, V, S> Decode for HashMap<K, V, S>
+where
+	K: Decode + Eq + Hash,
+	V: Decode,
+	S: BuildHasher + Default,
+	{
+	#[inline]
+	fn decode(stream: &mut IStream) -> Result<Self, DecodeError> {
+		let len = Decode::decode(stream)?;
+
+		let mut this = Self::with_capacity_and_hasher(len, Default::default());
+
+		for _ in 0x0..len {
+			let key   = Decode::decode(stream)?;
+			let value = Decode::decode(stream)?;
+
+			this.insert(key, value);
+		}
 
 		Ok(this)
 	}
@@ -220,13 +247,11 @@ impl Decode for Infallible {
 impl Decode for IpAddr {
 	#[inline]
 	fn decode(stream: &mut IStream) -> Result<Self, DecodeError> {
-		use IpAddr::*;
-
 		let discriminant = u8::decode(stream)?;
 
 		let this = match discriminant {
-			0x4 => V4(Decode::decode(stream)?),
-			0x6 => V6(Decode::decode(stream)?),
+			0x4 => Self::V4(Decode::decode(stream)?),
+			0x6 => Self::V6(Decode::decode(stream)?),
 
 			_ => return Err(DecodeError::InvalidDiscriminant(discriminant.into()))
 		};
@@ -254,10 +279,29 @@ impl Decode for Ipv6Addr {
 }
 
 impl Decode for isize {
-	#[inline]
+	#[inline(always)]
 	fn decode(stream: &mut IStream) -> Result<Self, DecodeError> {
 		let value = i16::decode(stream)?;
 		Ok(value as Self)
+	}
+}
+
+#[cfg(feature = "alloc")]
+#[cfg_attr(doc, doc(cfg(feature = "alloc")))]
+impl<T: Decode> Decode for LinkedList<T> {
+	#[inline]
+	fn decode(stream: &mut IStream) -> Result<Self, DecodeError> {
+		let len = usize::decode(stream)?;
+
+		let mut this = Self::new();
+
+		for _ in 0x0..len {
+			let value = T::decode(stream)?;
+
+			this.push_back(value);
+		}
+
+		Ok(this)
 	}
 }
 
@@ -271,7 +315,7 @@ impl<T: Decode> Decode for Mutex<T> {
 }
 
 impl<T: Decode> Decode for Option<T> {
-	#[expect(clippy::if_then_some_else_none)]
+	#[expect(clippy::if_then_some_else_none)] // ???
 	#[inline]
 	fn decode(stream: &mut IStream) -> Result<Self, DecodeError> {
 		let sign = bool::decode(stream)?;
@@ -287,6 +331,13 @@ impl<T: Decode> Decode for Option<T> {
 }
 
 impl<T> Decode for PhantomData<T> {
+	#[inline(always)]
+	fn decode(_stream: &mut IStream) -> Result<Self, DecodeError> {
+		Ok(Self)
+	}
+}
+
+impl Decode for PhantomPinned {
 	#[inline(always)]
 	fn decode(_stream: &mut IStream) -> Result<Self, DecodeError> {
 		Ok(Self)
@@ -388,15 +439,13 @@ impl<T: Decode> Decode for Saturating<T> {
 }
 
 impl Decode for SocketAddr {
-	#[inline(always)]
+	#[inline]
 	fn decode(stream: &mut IStream) -> Result<Self, DecodeError> {
-		use SocketAddr::*;
-
 		let discriminant = u8::decode(stream)?;
 
 		let this = match discriminant {
-			0x4 => V4(Decode::decode(stream)?),
-			0x6 => V6(Decode::decode(stream)?),
+			0x4 => Self::V4(Decode::decode(stream)?),
+			0x6 => Self::V6(Decode::decode(stream)?),
 
 			_ => return Err(DecodeError::InvalidDiscriminant(discriminant.into()))
 		};
@@ -454,7 +503,7 @@ impl Decode for () {
 }
 
 impl Decode for usize {
-	#[inline]
+	#[inline(always)]
 	fn decode(stream: &mut IStream) -> Result<Self, DecodeError> {
 		let value = u16::decode(stream)?;
 		Ok(value as Self)
@@ -464,13 +513,13 @@ impl Decode for usize {
 #[cfg(feature = "alloc")]
 #[cfg_attr(doc, doc(cfg(feature = "alloc")))]
 impl<T: Decode> Decode for Vec<T> {
-	#[inline(always)]
+	#[inline]
 	fn decode(stream: &mut IStream) -> Result<Self, DecodeError> {
 		let len = Decode::decode(stream)?;
 
-		let mut v = Self::with_capacity(len);
+		let mut this = Self::with_capacity(len);
 
-		let buf = v.as_mut_ptr();
+		let buf = this.as_mut_ptr();
 		for i in 0x0..len {
 			let value = Decode::decode(stream)?;
 
@@ -480,9 +529,9 @@ impl<T: Decode> Decode for Vec<T> {
 		}
 
 		// SAFETY: We have initialised the buffer.
-		unsafe { v.set_len(len); }
+		unsafe { this.set_len(len); }
 
-		Ok(v)
+		Ok(this)
 	}
 }
 
@@ -491,6 +540,73 @@ impl<T: Decode> Decode for Wrapping<T> {
 	fn decode(stream: &mut IStream) -> Result<Self, DecodeError> {
 		Ok(Self(Decode::decode(stream)?))
 	}
+}
+
+macro_rules! impl_numeric {
+	($ty:ty$(,)?) => {
+		impl ::bzipper::Decode for $ty {
+			#[inline]
+			fn decode(stream: &mut IStream) -> ::core::result::Result<Self, ::bzipper::error::DecodeError> {
+				let data = stream
+					.read(Self::MAX_ENCODED_SIZE)
+					.try_into()
+					.expect(concat!("mismatch between `", stringify!($ty), "::MAX_ENCODED_SIZE` and buffer needed by `", stringify!($ty), "::from_be_bytes`"));
+
+				let this = Self::from_be_bytes(data);
+				Ok(this)
+			}
+		}
+	};
+}
+
+macro_rules! impl_tuple {
+	{
+		$($tys:ident),+$(,)?
+	} => {
+		#[doc(hidden)]
+		impl<$($tys: ::bzipper::Decode, )*> ::bzipper::Decode for ($($tys, )*) {
+			#[inline(always)]
+			fn decode(stream: &mut ::bzipper::IStream) -> ::core::result::Result<Self, ::bzipper::error::DecodeError> {
+				let this = (
+					$( <$tys as ::bzipper::Decode>::decode(stream)?, )*
+				);
+
+				Ok(this)
+			}
+		}
+	};
+}
+
+macro_rules! impl_non_zero {
+	($ty:ty$(,)?) => {
+		impl ::bzipper::Decode for NonZero<$ty> {
+			#[inline]
+			fn decode(stream: &mut IStream) -> ::core::result::Result<Self, ::bzipper::error::DecodeError> {
+				let value = <$ty as ::bzipper::Decode>::decode(stream)?;
+
+				let this = NonZero::new(value)
+					.ok_or(::bzipper::error::DecodeError::NullInteger)?;
+
+				Ok(this)
+			}
+		}
+	};
+}
+
+macro_rules! impl_atomic {
+	{
+		width: $width:literal,
+		ty: $ty:ty$(,)?
+	} => {
+		#[cfg(target_has_atomic = $width)]
+		#[cfg_attr(doc, doc(cfg(target_has_atomic = $width)))]
+		impl ::bzipper::Decode for $ty {
+			#[inline(always)]
+			fn decode(stream: &mut ::bzipper::IStream) -> ::core::result::Result<Self, ::bzipper::error::DecodeError> {
+				Ok(Self::new(::bzipper::Decode::decode(stream)?))
+			}
+		}
+	};
 }
 
 //impl_numeric!(f128);
@@ -507,6 +623,116 @@ impl_numeric!(u16);
 impl_numeric!(u32);
 impl_numeric!(u64);
 impl_numeric!(u8);
+
+impl_tuple! {
+	T0,
+	T1,
+}
+
+impl_tuple! {
+	T0,
+	T1,
+	T2,
+}
+
+impl_tuple! {
+	T0,
+	T1,
+	T2,
+	T3,
+}
+
+impl_tuple! {
+	T0,
+	T1,
+	T2,
+	T3,
+	T4,
+}
+
+impl_tuple! {
+	T0,
+	T1,
+	T2,
+	T3,
+	T4,
+	T5,
+}
+
+impl_tuple! {
+	T0,
+	T1,
+	T2,
+	T3,
+	T4,
+	T5,
+	T6,
+}
+
+impl_tuple! {
+	T0,
+	T1,
+	T2,
+	T3,
+	T4,
+	T5,
+	T6,
+	T7,
+}
+
+impl_tuple! {
+	T0,
+	T1,
+	T2,
+	T3,
+	T4,
+	T5,
+	T6,
+	T7,
+	T8,
+}
+
+impl_tuple! {
+	T0,
+	T1,
+	T2,
+	T3,
+	T4,
+	T5,
+	T6,
+	T7,
+	T8,
+	T9,
+}
+
+impl_tuple! {
+	 T0,
+	 T1,
+	 T2,
+	 T3,
+	 T4,
+	 T5,
+	 T6,
+	 T7,
+	 T8,
+	 T9,
+	 T10,
+}
+
+impl_tuple! {
+	 T0,
+	 T1,
+	 T2,
+	 T3,
+	 T4,
+	 T5,
+	 T6,
+	 T7,
+	 T8,
+	 T9,
+	 T10,
+	 T11,
+}
 
 impl_non_zero!(i128);
 impl_non_zero!(i16);

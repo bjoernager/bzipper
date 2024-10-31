@@ -3,6 +3,16 @@
 This is the changelog of bzipper.
 See `README.md` for more information.
 
+## 0.9.0
+
+* Implement `Encode` and `Decode` for `LinkedList`, `HashMap`, `Cow`, `PhantomPinned`, `LazyCell`, `LazyLock`
+* Add missing `Decode` implementation for `Box`
+* Update inline rules
+* Implement traits for tuples using macros
+* Implement `SizedEncode` for `PhantomPinned`, `Cow`, `LazyCell`, `LazyLock`, `&_`, `&mut _`
+* Implement `Encode` for `&_` and `&mut _`
+* Update docs
+
 ## 0.8.1
 
 * Update package metadata

@@ -21,7 +21,7 @@
 
 use core::ptr::copy_nonoverlapping;
 
-/// Byte stream suitable for encoding.
+/// Byte stream suitable for output.
 pub struct OStream<'a> {
 	buf: &'a mut [u8],
 	pos: usize,

@@ -55,8 +55,6 @@ use std::rc::Rc;
 #[cfg(feature = "std")]
 use std::sync::{Arc, Mutex, RwLock};
 
-mod tuple;
-
 /// Denotes a size-constrained, encodable type.
 ///
 /// When using [`Encode`], the size of the resulting encoding cannot always be known beforehand.
@@ -73,34 +71,19 @@ pub unsafe trait SizedEncode: Encode + Sized {
 	const MAX_ENCODED_SIZE: usize;
 }
 
-macro_rules! impl_numeric {
-	($ty:ty$(,)?) => {
-		unsafe impl ::bzipper::SizedEncode for $ty {
-			const MAX_ENCODED_SIZE: usize = size_of::<$ty>();
-		}
-	};
+unsafe impl<T: SizedEncode> SizedEncode for &T {
+	const MAX_ENCODED_SIZE: usize = T::MAX_ENCODED_SIZE;
 }
 
-macro_rules! impl_non_zero {
-	($ty:ty$(,)?) => {
-		unsafe impl ::bzipper::SizedEncode for ::core::num::NonZero<$ty> {
-			const MAX_ENCODED_SIZE: usize = <$ty as ::bzipper::SizedEncode>::MAX_ENCODED_SIZE;
-		}
-	};
+unsafe impl<T: SizedEncode> SizedEncode for &mut T {
+	const MAX_ENCODED_SIZE: usize = T::MAX_ENCODED_SIZE;
 }
 
-macro_rules! impl_atomic {
-	{
-		width: $width:literal,
-		ty: $ty:ty,
-		atomic_ty: $atomic_ty:ty$(,)?
-	} => {
-		#[cfg(target_has_atomic = $width)]
-		#[cfg_attr(doc, doc(cfg(target_has_atomic = $width)))]
-		unsafe impl ::bzipper::SizedEncode for $atomic_ty {
-			const MAX_ENCODED_SIZE: usize = <$ty as ::bzipper::SizedEncode>::MAX_ENCODED_SIZE;
-		}
-	};
+/// Implemented for tuples with up to twelve members.
+#[cfg_attr(doc, doc(fake_variadic))]
+unsafe impl<T: SizedEncode> SizedEncode for (T, ) {
+	#[doc(hidden)]
+	const MAX_ENCODED_SIZE: usize = T::MAX_ENCODED_SIZE;
 }
 
 unsafe impl<T: SizedEncode, const N: usize> SizedEncode for [T; N] {
@@ -247,6 +230,47 @@ unsafe impl<T: SizedEncode> SizedEncode for Wrapping<T> {
 	const MAX_ENCODED_SIZE: usize = T::MAX_ENCODED_SIZE;
 }
 
+macro_rules! impl_numeric {
+	($ty:ty$(,)?) => {
+		unsafe impl ::bzipper::SizedEncode for $ty {
+			const MAX_ENCODED_SIZE: usize = size_of::<$ty>();
+		}
+	};
+}
+
+macro_rules! impl_tuple {
+	{
+		$($tys:ident),+$(,)?
+	} => {
+		#[doc(hidden)]
+		unsafe impl<$($tys: ::bzipper::SizedEncode, )*> ::bzipper::SizedEncode for ($($tys, )*) {
+			const MAX_ENCODED_SIZE: usize = 0x0 $(+ <$tys as ::bzipper::SizedEncode>::MAX_ENCODED_SIZE)*;
+		}
+	};
+}
+
+macro_rules! impl_non_zero {
+	($ty:ty$(,)?) => {
+		unsafe impl ::bzipper::SizedEncode for ::core::num::NonZero<$ty> {
+			const MAX_ENCODED_SIZE: usize = <$ty as ::bzipper::SizedEncode>::MAX_ENCODED_SIZE;
+		}
+	};
+}
+
+macro_rules! impl_atomic {
+	{
+		width: $width:literal,
+		ty: $ty:ty,
+		atomic_ty: $atomic_ty:ty$(,)?
+	} => {
+		#[cfg(target_has_atomic = $width)]
+		#[cfg_attr(doc, doc(cfg(target_has_atomic = $width)))]
+		unsafe impl ::bzipper::SizedEncode for $atomic_ty {
+			const MAX_ENCODED_SIZE: usize = <$ty as ::bzipper::SizedEncode>::MAX_ENCODED_SIZE;
+		}
+	};
+}
+
 //impl_numeric!(f128);
 //impl_numeric!(f16);
 impl_numeric!(f32);
@@ -261,6 +285,116 @@ impl_numeric!(u16);
 impl_numeric!(u32);
 impl_numeric!(u64);
 impl_numeric!(u8);
+
+impl_tuple! {
+	T0,
+	T1,
+}
+
+impl_tuple! {
+	T0,
+	T1,
+	T2,
+}
+
+impl_tuple! {
+	T0,
+	T1,
+	T2,
+	T3,
+}
+
+impl_tuple! {
+	T0,
+	T1,
+	T2,
+	T3,
+	T4,
+}
+
+impl_tuple! {
+	T0,
+	T1,
+	T2,
+	T3,
+	T4,
+	T5,
+}
+
+impl_tuple! {
+	T0,
+	T1,
+	T2,
+	T3,
+	T4,
+	T5,
+	T6,
+}
+
+impl_tuple! {
+	T0,
+	T1,
+	T2,
+	T3,
+	T4,
+	T5,
+	T6,
+	T7,
+}
+
+impl_tuple! {
+	T0,
+	T1,
+	T2,
+	T3,
+	T4,
+	T5,
+	T6,
+	T7,
+	T8,
+}
+
+impl_tuple! {
+	T0,
+	T1,
+	T2,
+	T3,
+	T4,
+	T5,
+	T6,
+	T7,
+	T8,
+	T9,
+}
+
+impl_tuple! {
+	T0,
+	T1,
+	T2,
+	T3,
+	T4,
+	T5,
+	T6,
+	T7,
+	T8,
+	T9,
+	T10,
+}
+
+impl_tuple! {
+	T0,
+	T1,
+	T2,
+	T3,
+	T4,
+	T5,
+	T6,
+	T7,
+	T8,
+	T9,
+	T10,
+	T11,
+}
 
 impl_non_zero!(i128);
 impl_non_zero!(i16);
