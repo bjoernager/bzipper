@@ -19,29 +19,26 @@
 // er General Public License along with bZipper. If
 // not, see <https://www.gnu.org/licenses/>.
 
-use alloc::vec::Vec;
 use bzipper::SizedSlice;
 
 #[test]
-fn test_sized_slice_from_iter() {
-	let f = |x: u32| -> u32 {
-		let x = f64::from(x);
+fn test_sized_iter_double_ended() {
+	let data = SizedSlice::from([
+		'H', 'E', 'L', 'L', 'O', ' ', 'W', 'O',
+		'R', 'L', 'D',
+	]);
 
-		let y = x.sin().powi(0x2) * 1000.0;
+	let mut data = data.into_iter();
 
-		y as u32
-	};
-
-	let mut vec = Vec::new();
-
-	for x in 0x0..0x8 {
-		vec.push(f(x));
-	}
-
-	let vec: SizedSlice<_, 0x10> = vec.into_iter().collect();
-
-	assert_eq!(
-		vec,
-		[0, 708, 826, 19, 572, 919, 78, 431],
-	);
+	assert_eq!(data.next(),      Some('H'));
+	assert_eq!(data.next_back(), Some('D'));
+	assert_eq!(data.next(),      Some('E'));
+	assert_eq!(data.next_back(), Some('L'));
+	assert_eq!(data.next(),      Some('L'));
+	assert_eq!(data.next_back(), Some('R'));
+	assert_eq!(data.next(),      Some('L'));
+	assert_eq!(data.next_back(), Some('O'));
+	assert_eq!(data.next(),      Some('O'));
+	assert_eq!(data.next_back(), Some('W'));
+	assert_eq!(data.next(),      Some(' '));
 }

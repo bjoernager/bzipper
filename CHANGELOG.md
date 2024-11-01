@@ -3,6 +3,12 @@
 This is the changelog of bzipper.
 See `README.md` for more information.
 
+## 0.10.1
+
+* Clean up and refactor code
+* Add more tests
+* Fix `DoubleEndedIterator` implementation for `SizedIter`
+
 ## 0.10.0
 
 * Clean up code

@@ -19,6 +19,9 @@
 // er General Public License along with bZipper. If
 // not, see <https://www.gnu.org/licenses/>.
 
+#[cfg(test)]
+mod test;
+
 use core::iter::{DoubleEndedIterator, ExactSizeIterator, FusedIterator};
 use core::mem::MaybeUninit;
 use core::slice;
@@ -85,26 +88,25 @@ impl<T, const N: usize> AsRef<[T]> for SizedIter<T, N> {
 impl<T: Clone, const N: usize> Clone for SizedIter<T, N> {
 	#[inline]
 	fn clone(&self) -> Self {
-		unsafe {
-			let mut buf: [MaybeUninit<T>; N] = MaybeUninit::uninit().assume_init();
-			let Self { pos, len, .. } = *self;
+		let mut buf: [MaybeUninit<T>; N] = unsafe { MaybeUninit::uninit().assume_init() };
+		let Self { pos, len, .. } = *self;
 
-			let start = pos;
-			let stop  = start.unchecked_add(len);
+		let start = pos;
+		let stop  = start + len;
 
-			for i in start..stop {
-				let value = &*self.buf
-					.as_ptr()
-					.add(i)
-					.cast::<T>();
+		for i in start..stop {
+			unsafe { 
+				let item = (&raw const *self.buf.get_unchecked(i)).cast();
+
+				let value = Clone::clone(&*item);
 
 				buf
 					.get_unchecked_mut(i)
-					.write(value.clone());
+					.write(value);
 			}
-
-			Self { buf, pos, len }
 		}
+
+		Self { buf, pos, len }
 	}
 }
 
@@ -113,17 +115,17 @@ impl<T, const N: usize> DoubleEndedIterator for SizedIter<T, N> {
 	fn next_back(&mut self) -> Option<Self::Item> {
 		if self.len == 0x0 { return None };
 
-		unsafe {
-			let index = self.pos.unchecked_add(self.len);
+		let index = self.pos + self.len - 0x1;
 
-			let item = self.buf
+		let item = unsafe {
+			self.buf
 				.get_unchecked(index)
-				.assume_init_read();
+				.assume_init_read()
+		};
 
-			self.len = self.len.unchecked_sub(0x1);
+		self.len -= 0x1;
 
-			Some(item)
-		}
+		Some(item)
 	}
 }
 
@@ -138,18 +140,18 @@ impl<T, const N: usize> Iterator for SizedIter<T, N> {
 	fn next(&mut self) -> Option<Self::Item> {
 		if self.len == 0x0 { return None };
 
-		unsafe {
-			let index = self.pos;
+		let index = self.pos;
 
-			let item = self.buf
+		let item = unsafe {
+			self.buf
 				.get_unchecked(index)
-				.assume_init_read();
+				.assume_init_read()
+		};
 
-			self.pos = self.pos.unchecked_add(0x1);
-			self.len = self.len.unchecked_sub(0x1);
+		self.len -= 0x1;
+		self.pos += 0x1;
 
-			Some(item)
-		}
+		Some(item)
 	}
 
 	#[inline(always)]
