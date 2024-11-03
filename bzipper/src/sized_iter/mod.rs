@@ -24,6 +24,7 @@ mod test;
 
 use core::iter::{DoubleEndedIterator, ExactSizeIterator, FusedIterator};
 use core::mem::MaybeUninit;
+use core::ptr::drop_in_place;
 use core::slice;
 
 /// Iterator to a sized slice.
@@ -86,6 +87,7 @@ impl<T, const N: usize> AsRef<[T]> for SizedIter<T, N> {
 }
 
 impl<T: Clone, const N: usize> Clone for SizedIter<T, N> {
+	#[expect(clippy::borrow_deref_ref)] // Clippy is gaslighting me into believing pointers and references are identical???
 	#[inline]
 	fn clone(&self) -> Self {
 		let mut buf: [MaybeUninit<T>; N] = unsafe { MaybeUninit::uninit().assume_init() };
@@ -95,14 +97,12 @@ impl<T: Clone, const N: usize> Clone for SizedIter<T, N> {
 		let stop  = start + len;
 
 		for i in start..stop {
-			unsafe { 
+			unsafe {
 				let item = (&raw const *self.buf.get_unchecked(i)).cast();
 
 				let value = Clone::clone(&*item);
 
-				buf
-					.get_unchecked_mut(i)
-					.write(value);
+				buf.get_unchecked_mut(i).write(value);
 			}
 		}
 
@@ -117,11 +117,7 @@ impl<T, const N: usize> DoubleEndedIterator for SizedIter<T, N> {
 
 		let index = self.pos + self.len - 0x1;
 
-		let item = unsafe {
-			self.buf
-				.get_unchecked(index)
-				.assume_init_read()
-		};
+		let item = unsafe { self.buf.get_unchecked(index).assume_init_read() };
 
 		self.len -= 0x1;
 
@@ -142,14 +138,35 @@ impl<T, const N: usize> Iterator for SizedIter<T, N> {
 
 		let index = self.pos;
 
-		let item = unsafe {
-			self.buf
-				.get_unchecked(index)
-				.assume_init_read()
-		};
+		let item = unsafe { self.buf.get_unchecked(index).assume_init_read() };
 
 		self.len -= 0x1;
 		self.pos += 0x1;
+
+		Some(item)
+	}
+
+	#[inline]
+	fn nth(&mut self, index: usize) -> Option<Self::Item> {
+		if index > self.len { return None };
+
+		let start = self.pos;
+		let stop  = start + index - 0x1;
+
+		// Drop each skipped element.
+		for i in start..stop {
+			unsafe {
+				let item = &raw mut *self.buf.get_unchecked_mut(i);
+
+				drop_in_place(item);
+			}
+		}
+
+		// Read the final element.
+		let item = unsafe { self.buf.get_unchecked(index).assume_init_read() };
+
+		self.len -= index;
+		self.pos += index;
 
 		Some(item)
 	}

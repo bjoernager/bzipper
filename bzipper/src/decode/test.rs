@@ -20,6 +20,7 @@
 // not, see <https://www.gnu.org/licenses/>.
 
 use alloc::vec::Vec;
+use alloc::string::String;
 use bzipper::{Decode, IStream, SizedEncode};
 use core::char;
 
@@ -118,5 +119,7 @@ fn test_decode() {
 		0xC8, 0x4C,
 	] => UnitOrFields::Named { timestamp: 1724237900 });
 
-	test!(Vec<u16>: [0x00, 0x02, 0xFF, 0xEE, 0xDD, 0xCC] => [0xFF_EE, 0xDD_CC].as_slice());
+	test!(Vec<u16>: [0x00, 0x02, 0xAA, 0xBB, 0xCC, 0xDD] => [0xAA_BB, 0xCC_DD].as_slice());
+
+	test!(String: [0x00, 0x06, 0xE6, 0x97, 0xA5, 0xE6, 0x9C, 0xAC] => "\u{65E5}\u{672C}");
 }

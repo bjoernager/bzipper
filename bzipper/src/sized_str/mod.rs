@@ -138,8 +138,9 @@ impl<const N: usize> SizedStr<N> {
 
 			Err(e) => {
 				let i = e.valid_up_to();
+				let c = data[i];
 
-				return Err(StringError::BadUtf8(Utf8Error { value: data[i], index: i }));
+				return Err(StringError::BadUtf8(Utf8Error { value: c, index: i }));
 			}
 		};
 
@@ -310,15 +311,22 @@ impl<const N: usize> SizedStr<N> {
 		(buf, len)
 	}
 
+	/// Deconstructs the string into a fixed-size byte slice.
+	#[inline(always)]
+	#[must_use]
+	pub const fn into_bytes(self) -> SizedSlice<u8, N> {
+		let Self(v) = self;
+		v
+	}
+
 	/// Converts the fixed-size string into a boxed string slice.
 	#[cfg(feature = "alloc")]
 	#[cfg_attr(doc, doc(cfg(feature = "alloc")))]
 	#[inline(always)]
 	#[must_use]
 	pub fn into_boxed_str(self) -> Box<str> {
-		let Self(vec) = self;
-
-		unsafe { alloc::str::from_boxed_utf8_unchecked(vec.into_boxed_slice()) }
+		let Self(v) = self;
+		unsafe { alloc::str::from_boxed_utf8_unchecked(v.into_boxed_slice()) }
 	}
 
 	/// Converts the fixed-size string into a dynamic string.

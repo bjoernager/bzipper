@@ -41,13 +41,13 @@
 //!
 //! | Benchmark                          | [Bincode] | [Borsh] | bZipper | [Ciborium] | [Postcard] |
 //! | :--------------------------------- | --------: | ------: | ------: | ---------: | ---------: |
-//! | `encode_u8`                        |     1.262 |   1.271 |   1.153 |      2.854 |      1.270 |
-//! | `encode_struct_unit`               |     0.000 |   0.000 |   0.000 |      0.447 |      0.000 |
-//! | `encode_struct_unnamed`            |     1.270 |   1.102 |   0.998 |      1.948 |      1.182 |
-//! | `encode_struct_named`              |     4.205 |   1.186 |   1.136 |     10.395 |      1.168 |
-//! | `encode_enum_unit`                 |     0.328 |   0.008 |   0.000 |      2.293 |      0.004 |
-//! | **Total time** &#8594;             |     7.065 |   3.567 |   3.286 |     17.937 |      3.625 |
-//! | **Total deviation (p.c.)** &#8594; |      +115 |      +9 |      ±0 |       +446 |        +10 |
+//! | `encode_u8`                        |     1.234 |   1.096 |   0.881 |      3.076 |      1.223 |
+//! | `encode_struct_unit`               |     0.000 |   0.000 |   0.000 |      0.516 |      0.000 |
+//! | `encode_struct_unnamed`            |     1.367 |   1.154 |   1.009 |      2.051 |      1.191 |
+//! | `encode_struct_named`              |     4.101 |   1.271 |   1.181 |      9.342 |      1.182 |
+//! | `encode_enum_unit`                 |     0.306 |   0.008 |   0.000 |      2.304 |      0.004 |
+//! | **Total time** &#8594;             |     7.009 |   3.528 |   3.071 |     17.289 |      3.599 |
+//! | **Total deviation (p.c.)** &#8594; |      +128 |     +15 |      ±0 |       +463 |        +17 |
 //!
 //! [Bincode]: https://crates.io/crates/bincode/
 //! [Borsh]: https://crates.io/crates/borsh/
@@ -430,8 +430,8 @@ use_mod!(pub i_stream);
 use_mod!(pub o_stream);
 use_mod!(pub sized_encode);
 use_mod!(pub sized_iter);
-use_mod!(pub sized_str);
 use_mod!(pub sized_slice);
+use_mod!(pub sized_str);
 
 #[cfg(feature = "alloc")]
 use_mod!(pub buf);

@@ -45,10 +45,10 @@ use core::ops::{
 	RangeTo,
 	RangeToInclusive,
 };
-use std::borrow::ToOwned;
+use core::time::Duration;
 
 #[cfg(feature = "alloc")]
-use alloc::borrow::Cow;
+use alloc::borrow::{Cow, ToOwned};
 
 #[cfg(feature = "alloc")]
 use alloc::boxed::Box;
@@ -61,6 +61,9 @@ use alloc::sync::Arc;
 
 #[cfg(feature = "std")]
 use std::sync::{LazyLock, Mutex, RwLock};
+
+#[cfg(feature = "std")]
+use std::time::SystemTime;
 
 /// Denotes a size-constrained, encodable type.
 ///
@@ -129,6 +132,12 @@ unsafe impl SizedEncode for char {
 #[cfg_attr(doc, doc(cfg(feature = "alloc")))]
 unsafe impl<T: SizedEncode + ToOwned> SizedEncode for Cow<'_, T> {
 	const MAX_ENCODED_SIZE: usize = T::MAX_ENCODED_SIZE;
+}
+
+unsafe impl SizedEncode for Duration {
+	const MAX_ENCODED_SIZE: usize =
+		u64::MAX_ENCODED_SIZE
+		+ u32::MAX_ENCODED_SIZE;
 }
 
 unsafe impl SizedEncode for Infallible {
@@ -242,6 +251,12 @@ unsafe impl SizedEncode for SocketAddrV6 {
 		+ u16::MAX_ENCODED_SIZE
 		+ u32::MAX_ENCODED_SIZE
 		+ u32::MAX_ENCODED_SIZE;
+}
+
+#[cfg(feature = "std")]
+#[cfg_attr(doc, doc(cfg(feature = "std")))]
+unsafe impl SizedEncode for SystemTime {
+	const MAX_ENCODED_SIZE: usize = i64::MAX_ENCODED_SIZE;
 }
 
 unsafe impl SizedEncode for () {

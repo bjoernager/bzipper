@@ -48,12 +48,18 @@ use core::ops::{
 	RangeTo,
 	RangeToInclusive,
 };
+use core::ptr::copy_nonoverlapping;
+use core::str;
+use core::time::Duration;
 
 #[cfg(feature = "alloc")]
-use std::boxed::Box;
+use alloc::boxed::Box;
 
 #[cfg(feature = "alloc")]
-use std::collections::LinkedList;
+use alloc::collections::LinkedList;
+
+#[cfg(feature = "alloc")]
+use alloc::ffi::CString;
 
 #[cfg(feature = "alloc")]
 use alloc::string::String;
@@ -76,6 +82,9 @@ use std::hash::BuildHasher;
 #[cfg(feature = "std")]
 use std::sync::{Mutex, RwLock};
 
+#[cfg(feature = "std")]
+use std::time::{SystemTime, UNIX_EPOCH};
+
 // Should we require `Encode` for `Decode`?
 
 /// Denotes a type capable of being decoded.
@@ -96,7 +105,6 @@ where
 	#[inline(always)]
 	fn decode(stream: &mut IStream) -> Result<Self, DecodeError> {
 		let value = (Decode::decode(stream)?, );
-
 		Ok(value)
 	}
 }
@@ -106,6 +114,7 @@ impl<T: Decode, const N: usize> Decode for [T; N] {
 	fn decode(stream: &mut IStream) -> Result<Self, DecodeError> {
 		// Initialise the array incrementally.
 
+		// SAFETY: Always safe.
  		let mut buf: [MaybeUninit<T>; N] = unsafe { MaybeUninit::uninit().assume_init() };
 
 		for item in &mut buf {
@@ -207,6 +216,46 @@ impl Decode for char {
 	}
 }
 
+#[cfg(feature = "alloc")]
+#[cfg_attr(doc, doc(cfg(feature = "alloc")))]
+impl Decode for CString {
+	#[inline(always)]
+	fn decode(stream: &mut IStream) -> Result<Self, DecodeError> {
+		let len = Decode::decode(stream)?;
+
+		let data = stream.read(len);
+
+		for (i, c) in data.iter().enumerate() {
+			if *c == b'\x00' { return Err(DecodeError::NullCString { index: i }) };
+		}
+
+		let mut buf = Vec::with_capacity(len);
+
+		unsafe {
+			let src = data.as_ptr();
+			let dst = buf.as_mut_ptr();
+
+			copy_nonoverlapping(src, dst, len);
+			buf.set_len(len);
+		}
+
+		// SAFETY: We have already tested the data.
+		let this = unsafe { Self::from_vec_unchecked(buf) };
+		Ok(this)
+	}
+}
+
+impl Decode for Duration {
+	#[inline(always)]
+	fn decode(stream: &mut IStream) -> Result<Self, DecodeError> {
+		let secs  = Decode::decode(stream)?;
+		let nanos = Decode::decode(stream)?;
+
+		let this = Self::new(secs, nanos);
+		Ok(this)
+	}
+}
+
 #[cfg(feature = "std")]
 #[cfg_attr(doc, doc(cfg(feature = "std")))]
 impl<K, V, S> Decode for HashMap<K, V, S>
@@ -283,7 +332,6 @@ impl Decode for Ipv4Addr {
 	#[inline(always)]
 	fn decode(stream: &mut IStream) -> Result<Self, DecodeError> {
 		let value = Decode::decode(stream)?;
-
 		Ok(Self::from_bits(value))
 	}
 }
@@ -292,7 +340,6 @@ impl Decode for Ipv6Addr {
 	#[inline(always)]
 	fn decode(stream: &mut IStream) -> Result<Self, DecodeError> {
 		let value = Decode::decode(stream)?;
-
 		Ok(Self::from_bits(value))
 	}
 }
@@ -512,15 +559,52 @@ impl Decode for SocketAddrV6 {
 impl Decode for String {
 	#[inline(always)]
 	fn decode(stream: &mut IStream) -> Result<Self, DecodeError> {
-		let data = <Vec::<u8>>::decode(stream)?;
+		let len = Decode::decode(stream)?;
 
-		Self::from_utf8(data)
+		let data = stream.read(len);
+
+		str::from_utf8(data)
 			.map_err(|e| {
-				let data = e.as_bytes();
-				let i = e.utf8_error().valid_up_to();
+				let i = e.valid_up_to();
+				let c = data[i];
 
-				DecodeError::BadString(Utf8Error { value: data[i], index: i })
-			})
+				DecodeError::BadString(Utf8Error { value: c, index: i })
+			})?;
+
+		let mut v = Vec::with_capacity(len);
+
+		unsafe {
+			let src = data.as_ptr();
+			let dst = v.as_mut_ptr();
+
+			copy_nonoverlapping(src, dst, len);
+			v.set_len(len);
+		}
+
+		// SAFETY: We have already tested the raw data.
+		let this = unsafe { Self::from_utf8_unchecked(v) };
+		Ok(this)
+	}
+}
+
+#[cfg(feature = "std")]
+#[cfg_attr(doc, doc(cfg(feature = "std")))]
+impl Decode for SystemTime {
+	#[inline]
+	fn decode(stream: &mut IStream) -> Result<Self, DecodeError> {
+		let time = i64::decode(stream)?;
+
+		let this = if time.is_positive() {
+			let time = time as u64;
+
+			UNIX_EPOCH.checked_add(Duration::from_secs(time))
+		} else {
+			let time = time.unsigned_abs();
+
+			UNIX_EPOCH.checked_sub(Duration::from_secs(time))
+		};
+
+		this.ok_or_else(|| DecodeError::NarrowSystemTime { timestamp: time })
 	}
 }
 

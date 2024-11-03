@@ -19,7 +19,31 @@
 // er General Public License along with bZipper. If
 // not, see <https://www.gnu.org/licenses/>.
 
-use bzipper::SizedSlice;
+use bzipper::{SizedSlice, SizedStr};
+
+#[test]
+fn test_sized_iter_clone() {
+	let data = SizedStr::<0x9>::new("fran\u{00E7}ais").unwrap();
+
+	let mut data0 = data.into_bytes().into_iter();
+
+	let _ = data0.nth(0x4);
+
+	let mut data1 = data0.clone();
+
+	assert_eq!(data0.next(), Some(0xC3));
+	assert_eq!(data1.next(), Some(0xC3));
+	assert_eq!(data0.next(), Some(0xA7));
+	assert_eq!(data1.next(), Some(0xA7));
+	assert_eq!(data0.next(), Some(b'a'));
+	assert_eq!(data1.next(), Some(b'a'));
+	assert_eq!(data0.next(), Some(b'i'));
+	assert_eq!(data1.next(), Some(b'i'));
+	assert_eq!(data0.next(), Some(b's'));
+	assert_eq!(data1.next(), Some(b's'));
+	assert_eq!(data0.next(), None);
+	assert_eq!(data1.next(), None);
+}
 
 #[test]
 fn test_sized_iter_double_ended() {

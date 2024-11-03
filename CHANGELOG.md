@@ -3,6 +3,23 @@
 This is the changelog of bzipper.
 See `README.md` for more information.
 
+## 0.11.0
+
+* Add `into_bytes` destructor to `SizedStr`
+* Clean up code
+* Update and add more tests
+* Manually implement `<SizedIter as Iterator>::nth`
+* Implement `Encode` and `Decode` for `CString`, `SystemTime`, `Duration`
+* Implement `Encode` for `CStr`
+* Update docs
+* Fix includes in `/bzipper/src/decode/mod.rs` and `/bzipper/src/sized_encode/mod.rs`
+* Add new `NullCString` and `NarrowSystemTime` error variants to `DecodeError`
+* Optimise `<String as Decode>::decode`
+* Update lints
+* Implement `SizedEncode` for `SystemTime` and `Duration`
+* Update benchmark stats
+* Update readme
+
 ## 0.10.1
 
 * Clean up and refactor code

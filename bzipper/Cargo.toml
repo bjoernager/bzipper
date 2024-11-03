@@ -1,6 +1,6 @@
 [package]
 name          = "bzipper"
-version       = "0.10.1"
+version       = "0.11.0"
 edition       = "2021"
 rust-version  = "1.83"
 documentation = "https://docs.rs/bzipper/"
@@ -24,7 +24,7 @@ alloc = []
 std   = []
 
 [dependencies]
-bzipper_macros = { path = "../bzipper_macros", version = "0.10.1" }
+bzipper_macros = { path = "../bzipper_macros", version = "0.11.0" }
 
 [lints]
 workspace = true

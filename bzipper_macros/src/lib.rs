@@ -21,7 +21,7 @@
 
 #![doc(html_logo_url = "https://gitlab.com/bjoernager/bzipper/-/raw/master/doc-icon.svg")]
 
-//! This crate implements procedural macros for [`bzipper`](https://crates.io/crates/bzipper/).
+//! This crate implements procedural macros for [`bZipper`](https://crates.io/crates/bzipper/).
 
 use proc_macro::TokenStream;
 use quote::quote;

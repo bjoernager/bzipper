@@ -27,6 +27,7 @@ use crate::error::EncodeError;
 
 use core::cell::{Cell, LazyCell, RefCell};
 use core::convert::Infallible;
+use core::ffi::CStr;
 use core::hash::BuildHasher;
 use core::hint::unreachable_unchecked;
 use core::marker::{PhantomData, PhantomPinned};
@@ -48,6 +49,7 @@ use core::ops::{
 	RangeTo,
 	RangeToInclusive,
 };
+use core::time::Duration;
 
 #[cfg(feature = "alloc")]
 use alloc::borrow::{Cow, ToOwned};
@@ -57,6 +59,9 @@ use alloc::boxed::Box;
 
 #[cfg(feature = "alloc")]
 use alloc::collections::LinkedList;
+
+#[cfg(feature = "alloc")]
+use alloc::ffi::CString;
 
 #[cfg(feature = "alloc")]
 use alloc::string::String;
@@ -75,6 +80,9 @@ use std::collections::{HashMap, HashSet};
 
 #[cfg(feature = "std")]
 use std::sync::{LazyLock, Mutex, RwLock};
+
+#[cfg(feature = "std")]
+use std::time::{SystemTime, UNIX_EPOCH};
 
 /// Denotes a type capable of being encoded.
 ///
@@ -148,6 +156,8 @@ impl<T: Encode> Encode for (T, ) {
 }
 
 impl<T: Encode, const N: usize> Encode for [T; N] {
+	/// Encodes each element sequentially.
+	/// The length is hard-coded into the type and is therefore not encoded.
 	#[inline(always)]
 	fn encode(&self, stream: &mut OStream) -> Result<(), EncodeError> {
 		for value in self {
@@ -159,6 +169,7 @@ impl<T: Encode, const N: usize> Encode for [T; N] {
 }
 
 impl<T: Encode> Encode for [T] {
+	/// Encodes each element sequentially with an extra length specifier (of type [`usize`]) prepended first.
 	#[inline(always)]
 	fn encode(&self, stream: &mut OStream) -> Result<(), EncodeError> {
 		self.len().encode(stream)?;
@@ -242,6 +253,35 @@ impl<T: Encode + ToOwned> Encode for Cow<'_, T> {
 	}
 }
 
+impl Encode for CStr {
+	/// Encodes the string identically to [a byte slice](slice) containing the string's byte values **excluding** the null terminator.
+	#[inline(always)]
+	fn encode(&self, stream: &mut OStream) -> Result<(), EncodeError> {
+		self.to_bytes().encode(stream)
+	}
+}
+
+#[cfg(feature = "alloc")]
+#[cfg_attr(doc, doc(cfg(feature = "alloc")))]
+impl Encode for CString {
+	/// See the the implementation of [`CStr`].
+	#[inline(always)]
+	fn encode(&self, stream: &mut OStream) -> Result<(), EncodeError> {
+		self.as_c_str().encode(stream)
+	}
+}
+
+impl Encode for Duration {
+	/// Encodes the duration's seconds and nanoseconds counters sequentially.
+	#[inline(always)]
+	fn encode(&self, stream: &mut OStream) -> Result<(), EncodeError> {
+		self.as_secs().encode(stream)?;
+		self.subsec_nanos().encode(stream)?;
+
+		Ok(())
+	}
+}
+
 #[cfg(feature = "std")]
 #[cfg_attr(doc, doc(cfg(feature = "std")))]
 impl<K, V, S> Encode for HashMap<K, V, S>
@@ -289,9 +329,10 @@ impl Encode for Infallible {
 	}
 }
 
-/// This implementation encoded as discriminant denoting the IP version of the address (i.e. `4` for IPv4 and `6` for IPv6).
-/// This is then followed by the respective address' own encoding (either [`Ipv4Addr`] or [`Ipv6Addr`]).
 impl Encode for IpAddr {
+	/// Encodes a the address with a preceding discriminant denoting the IP version of the address (i.e. `4` for IPv4 and `6` for IPv6).
+	///
+	/// See also the implementations of [`Ipv4Addr`] and [`Ipv6Addr`].
 	#[inline(always)]
 	fn encode(&self, stream: &mut OStream) -> Result<(), EncodeError> {
 		// The discriminant here is the IP version.
@@ -312,8 +353,8 @@ impl Encode for IpAddr {
 	}
 }
 
-/// This implementation encodes the address's bits in big-endian.
 impl Encode for Ipv4Addr {
+	/// Encodes the address's bits in big-endian.
 	#[inline(always)]
 	fn encode(&self, stream: &mut OStream) -> Result<(), EncodeError> {
 		let value = self.to_bits();
@@ -321,8 +362,8 @@ impl Encode for Ipv4Addr {
 	}
 }
 
-/// This implementation encodes the address's bits in big-endian.
 impl Encode for Ipv6Addr {
+	/// Encodes the address's bits in big-endian.
 	#[inline(always)]
 	fn encode(&self, stream: &mut OStream) -> Result<(), EncodeError> {
 		let value = self.to_bits();
@@ -330,9 +371,10 @@ impl Encode for Ipv6Addr {
 	}
 }
 
-/// This implementation casts `self` to `i16` before encoding.
-/// If this conversion isn't possible for the given value, then the [`IsizeOutOfRange`](EncodeError::IsizeOutOfRange) error is returned.
 impl Encode for isize {
+	/// Casts `self` to [`i16`] and encodes.
+	///
+	/// If this conversion isn't possible for the given value, then the [`IsizeOutOfRange`](EncodeError::IsizeOutOfRange) error is returned.
 	#[inline]
 	fn encode(&self, stream: &mut OStream) -> Result<(), EncodeError> {
 		let value = i16::try_from(*self)
@@ -383,10 +425,11 @@ impl<T: Encode> Encode for Mutex<T> {
 	}
 }
 
-/// This implementation encodes a sign denoting the optional's variant.
-/// The sign is `false` for `None` instances and `true` for `Some` instances.
-/// The contained value is encoded proceeding the sign.
 impl<T: Encode> Encode for Option<T> {
+	/// Encodes a sign denoting the optional's variant.
+	/// This is `false` for `None` instances and `true` for `Some` instances.
+	///
+	/// If `Some`, then the contained value is encoded after this sign..
 	fn encode(&self, stream: &mut OStream) -> Result<(), EncodeError> {
 		match *self {
 			None => false.encode(stream)?,
@@ -485,10 +528,12 @@ impl<T: Encode> Encode for RefCell<T> {
 	}
 }
 
-/// This implementation encodes a sign denoting the optional's variant.
-/// The sign is `false` for denoting `Ok` and `true` for denoting `Err`.
-/// The contained value is encoded proceeding the sign.
 impl<T: Encode, E: Encode> Encode for core::result::Result<T, E> {
+	/// Encodes a sign denoting the result's variant.
+	/// This is `false` for `Ok` instances and `true` for `Err` instances.
+	///
+	/// If `Ok`, then the contained value is encoded after this sign.
+	#[inline]
 	fn encode(&self, stream: &mut OStream) -> Result<(), EncodeError> {
 		// The sign here is `false` for `Ok` objects and
 		// `true` for `Err` objects.
@@ -528,9 +573,9 @@ impl<T: Encode> Encode for Saturating<T> {
 	}
 }
 
-/// This implementation encoded as discriminant denoting the IP version of the address (i.e. `4` for IPv4 and `6` for IPv6).
-/// This is then followed by the respective address' own encoding (either [`SocketAddrV4`] or [`SocketAddrV6`]).
 impl Encode for SocketAddr {
+	/// This implementation encoded as discriminant denoting the IP version of the address (i.e. `4` for IPv4 and `6` for IPv6).
+	/// This is then followed by the respective address' own encoding (either [`SocketAddrV4`] or [`SocketAddrV6`]).
 	#[inline]
 	fn encode(&self, stream: &mut OStream) -> Result<(), EncodeError> {
 		// The discriminant here is the IP version.
@@ -551,8 +596,8 @@ impl Encode for SocketAddr {
 	}
 }
 
-/// This implementation encodes the address's bits followed by the port number, all of which in big-endian.
 impl Encode for SocketAddrV4 {
+	/// Encodes the address's bits followed by the port number, both of which in big-endian.
 	#[inline(always)]
 	fn encode(&self, stream: &mut OStream) -> Result<(), EncodeError> {
 		self.ip().encode(stream)?;
@@ -562,8 +607,8 @@ impl Encode for SocketAddrV4 {
 	}
 }
 
-/// This implementation encodes the address's bits followed by the port number, all of which in big-endian.
 impl Encode for SocketAddrV6 {
+	/// Encodes the address's bits followed by the port number, flow information, and scope identifier -- all of which in big-endian.
 	#[inline(always)]
 	fn encode(&self, stream: &mut OStream) -> Result<(), EncodeError> {
 		self.ip().encode(stream)?;
@@ -576,6 +621,7 @@ impl Encode for SocketAddrV6 {
 }
 
 impl Encode for str {
+	/// Encodes the string identically to [a byte slice](slice) containing the string's byte values.
 	#[inline(always)]
 	fn encode(&self, stream: &mut OStream) -> Result<(), EncodeError> {
 		// Optimised encode. Don't just rely on `[char]`.
@@ -590,9 +636,44 @@ impl Encode for str {
 #[cfg(feature = "alloc")]
 #[cfg_attr(doc, doc(cfg(feature = "alloc")))]
 impl Encode for String {
+	/// See [`str`].
 	#[inline(always)]
 	fn encode(&self, stream: &mut OStream) -> Result<(), EncodeError> {
 		self.as_str().encode(stream)
+	}
+}
+
+#[cfg(feature = "std")]
+#[cfg_attr(doc, doc(cfg(feature = "std")))]
+impl Encode for SystemTime {
+	/// Encodes the time point as the nearest, signed UNIX timestamp.
+	///
+	/// Examples of some timestamps and their encodings include:
+	///
+	/// | ISO 8601                    | UNIX / bZipper |
+	/// | :-------------------------- | -------------: |
+	/// | `2024-11-03T12:02:01+01:00` |    +1730631721 |
+	/// | `1989-06-03T20:00:00+09:00` |      +13258800 |
+	/// | `1970-01-01T00:00:00Z`      |             +0 |
+	/// | `1945-05-04T18:30:00+02:00` |     -778231800 |
+	#[expect(clippy::cast_possible_wrap)]
+	#[inline]
+	fn encode(&self, stream: &mut OStream) -> Result<(), EncodeError> {
+		let time = if *self >= UNIX_EPOCH {
+			let duration = self
+				.duration_since(UNIX_EPOCH)
+				.expect("cannot compute duration since the epoch");
+
+				duration.as_secs() as i64
+		} else {
+			let duration = UNIX_EPOCH
+				.duration_since(*self)
+				.expect("cannot compute duration until the epoch");
+
+			0x0 - duration.as_secs() as i64
+		};
+
+		time.encode(stream)
 	}
 }
 
@@ -603,9 +684,11 @@ impl Encode for () {
 	}
 }
 
-/// This implementation casts `self` to `u16` before encoding.
-/// If this conversion isn't possible for the given value, then the [`IsizeOutOfRange`](EncodeError::IsizeOutOfRange) error is returned.
 impl Encode for usize {
+	/// Casts `self` to [`u16`] and encodes.
+	///
+	/// If this conversion isn't possible for the given value, then the [`IsizeOutOfRange`](EncodeError::UsizeOutOfRange) error is returned.
+	#[inline]
 	fn encode(&self, stream: &mut OStream) -> Result<(), EncodeError> {
 		let value = u16::try_from(*self)
 			.map_err(|_| EncodeError::UsizeOutOfRange(*self))?;
@@ -680,11 +763,12 @@ macro_rules! impl_atomic {
 		ty: $ty:ty,
 		atomic_ty: $atomic_ty:ty$(,)?
 	} => {
-		/// This implementation uses the same format as the atomic's primitive counterpart.
-		/// The atomic object itself is read with the [`Relaxed`](core::sync::atomic::Ordering) ordering scheme.
 		#[cfg(target_has_atomic = $width)]
 		#[cfg_attr(doc, doc(cfg(target_has_atomic = $width)))]
 		impl ::bzipper::Encode for $atomic_ty {
+			/// Encodes the atomic with the same scheme as that of the atomic type's primitive counterpart.
+			///
+			/// The atomic object itself is read with the [`Relaxed`](core::sync::atomic::Ordering) ordering scheme.
 			#[inline(always)]
 			fn encode(&self, stream: &mut ::bzipper::OStream) -> ::core::result::Result<(), ::bzipper::error::EncodeError> {
 				self.load(::std::sync::atomic::Ordering::Relaxed).encode(stream)

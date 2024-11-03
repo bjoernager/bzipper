@@ -56,8 +56,26 @@ pub enum DecodeError {
 	/// An invalid enumeration descriminant was provided.
 	InvalidDiscriminant(isize),
 
+	/// The [`SystemTime`](std::time::SystemTime) type could not represent a UNIX timestamp.
+	///
+	/// This error should not occur on systems that represent timestamps with at least a signed 64-bits seconds counter.
+	#[cfg(feature = "std")]
+	#[cfg_attr(doc, doc(cfg(feature = "std")))]
+	NarrowSystemTime {
+		/// The unrepresentable timestamp.
+		timestamp: i64,
+	},
+
 	/// A non-zero integer had the value `0`.
 	NullInteger,
+
+	/// A C-like string encountered a null value within bounds.
+	#[cfg(feature = "alloc")]
+	#[cfg_attr(doc, doc(cfg(feature = "alloc")))]
+	NullCString {
+		/// The index of the null value.
+		index: usize,
+	},
 
 	/// An array could not hold the requested amount of elements.
 	SmallBuffer(SizeError),
@@ -77,16 +95,24 @@ impl Display for DecodeError {
 			=> write!(f, "{source}"),
 
 			InvalidBoolean(value)
-			=> write!(f, "expected boolean but got {value:#02X}"),
+			=> write!(f, "expected boolean but got `{value:#02X}`"),
 
 			InvalidCodePoint(value)
 			=> write!(f, "code point U+{value:04X} is not defined"),
 
 			InvalidDiscriminant(value)
-			=> write!(f, "discriminant ({value}) is not valid for the given enumeration"),
+			=> write!(f, "discriminant `{value}` is not valid for the given enumeration"),
+
+			#[cfg(feature = "std")]
+			NarrowSystemTime { timestamp }
+			=> write!(f, "could not represent `{timestamp}` as a system timestamp"),
 
 			NullInteger
-			=> write!(f, "expected non-zero integer but got (0)"),
+			=> write!(f, "expected non-zero integer but got `0`"),
+
+			#[cfg(feature = "alloc")]
+			NullCString { index }
+			=> write!(f, "expected c string but found null value at '{index}`"),
 
 			SmallBuffer(ref source)
 			=> write!(f, "buffer too small: {source}"),
