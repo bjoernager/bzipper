@@ -1,5 +1,5 @@
 [workspace]
-members  = ["bzipper", "bzipper_benchmarks", "bzipper_macros"]
+members  = ["librum", "librum-benchmarks", "librum-macros"]
 resolver = "2"
 
 [workspace.package]
@@ -7,14 +7,14 @@ authors     = ["Gabriel Bjørnager Jensen"]
 description = "Binary (de)serialiser."
 readme      = "README.md"
 homepage    = "https://achernar.dk/index.php?p=bzipper"
-repository  = "https://mandelbrot.dk/bzipper/"
+repository  = "https://mandelbrot.dk/librum/"
 license     = "LGPL-3.0-or-later"
 keywords    = ["api", "encoding", "io", "network", "no-std"]
 categories  = ["encoding", "network-programming", "parsing"]
 
 [workspace.lints.clippy]
 as_ptr_cast_mut                    = "forbid"
-as_underscore                      = "warn"
+as_underscore                      = "forbid"
 assertions_on_result_states        = "warn"
 bool_to_int_with_if                = "warn"
 borrow_as_ptr                      = "forbid"
@@ -90,8 +90,6 @@ mutex_integer                      = "deny"
 needless_bitwise_bool              = "deny"
 needless_collect                   = "warn"
 needless_continue                  = "warn"
-needless_pass_by_ref_mut           = "warn"
-needless_pass_by_value             = "deny"
 needless_raw_string_hashes         = "warn"
 needless_raw_strings               = "warn"
 no_effect_underscore_binding       = "deny"
@@ -111,7 +109,6 @@ read_zero_byte_vec                 = "deny"
 redundant_clone                    = "deny"
 redundant_closure_for_method_calls = "warn"
 redundant_else                     = "warn"
-redundant_pub_crate                = "warn"
 redundant_type_annotations         = "warn"
 ref_as_ptr                         = "deny"
 ref_binding_to_reference           = "warn"
@@ -142,7 +139,6 @@ unnested_or_patterns               = "warn"
 unused_async                       = "warn"
 unused_peekable                    = "warn"
 unused_rounding                    = "warn"
-unused_self                        = "warn"
 use_self                           = "deny"
 used_underscore_binding            = "deny"
 useless_let_if_seq                 = "warn"

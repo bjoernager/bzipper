@@ -1,6 +1,6 @@
-# bZipper
+# Librum
 
-bZipper is a Rust crate for cheaply serialising (encoding) and deserialising (decoding) data structures into binary streams
+Librum is a Rust crate for cheaply serialising (encoding) and deserialising (decoding) data structures into binary streams
 
 What separates this crate from others such as [Bincode](https://crates.io/crates/bincode/) or [Postcard](https://crates.io/crates/postcard/) is that this crate is extensively optimised for *just* binary encodings (whilst the mentioned crates specifically use Serde and build on a more abstract data model).
 The original goal of this project was specifically to guarantee size constraints for encodings on a per-type basis at compile-time.
@@ -13,81 +13,102 @@ This crate is compatible with `no_std`.
 
 ## Performance
 
-As bZipper is optimised exclusively for a single, binary format, it may outperform other libraries that are more generic in nature.
+As Librum is optimised exclusively for a single, binary format, it may outperform other libraries that are more generic in nature.
 
-The `bzipper_benchmarks` binary compares multiple scenarios using bZipper and other, similar crates.
-According to my runs on an AMD Ryzen 7 3700X, these benchmarks indicate that bZipper outperform all of the tested crates -- as demonstrated in the following table:
+The `librum-benchmarks` binary compares multiple scenarios using Librum and other, similar crates.
+According to my runs on an AMD Ryzen 7 3700X, these benchmarks indicate that Librum outperform all of the tested crates -- as demonstrated in the following table:
 
-| Benchmark                          | [Bincode] | [Borsh] | bZipper | [Ciborium] | [Postcard] |
-| :--------------------------------- | --------: | ------: | ------: | ---------: | ---------: |
-| `encode_u8`                        |     1.234 |   1.096 |   0.881 |      3.076 |      1.223 |
-| `encode_struct_unit`               |     0.000 |   0.000 |   0.000 |      0.516 |      0.000 |
-| `encode_struct_unnamed`            |     1.367 |   1.154 |   1.009 |      2.051 |      1.191 |
-| `encode_struct_named`              |     4.101 |   1.271 |   1.181 |      9.342 |      1.182 |
-| `encode_enum_unit`                 |     0.306 |   0.008 |   0.000 |      2.304 |      0.004 |
-| **Total time** &#8594;             |     7.009 |   3.528 |   3.071 |     17.289 |      3.599 |
-| **Total deviation (p.c.)** &#8594; |      +128 |     +15 |      ±0 |       +463 |        +17 |
+| Benchmark                          | [Bincode] | [Borsh] | Librum | [Postcard] |
+| :--------------------------------- | --------: | ------: | ------: | ---------: |
+| `encode_u8`                        |     1.306 |   1.315 |   1.150 |      1.304 |
+| `encode_u32`                       |     1.321 |   1.317 |   1.146 |      3.016 |
+| `encode_u128`                      |     2.198 |   2.103 |   1.509 |      6.376 |
+| `encode_struct_unit`               |     0.000 |   0.000 |   0.000 |      0.000 |
+| `encode_struct_unnamed`            |     1.362 |   1.448 |   1.227 |      2.659 |
+| `encode_struct_named`              |     3.114 |   1.530 |   0.969 |      3.036 |
+| `encode_enum_unit`                 |     0.252 |   0.297 |   0.000 |      0.299 |
+| **Total time** &#8594;             |     9.553 |   8.010 |   6.001 |     16.691 |
+| **Total deviation (p.c.)** &#8594; |       +59 |     +33 |      ±0 |       +178 |
 
 [Bincode]: https://crates.io/crates/bincode/
 [Borsh]: https://crates.io/crates/borsh/
-[Ciborium]: https://crates.io/crates/ciborium/
 [Postcard]: https://crates.io/crates/postcard/
 
 All quantities are measured in seconds unless otherwise noted.
-Please feel free to conduct your own tests of bZipper.
+Please feel free to conduct your own tests of Librum.
 
 ## Data model
 
-Most primitives encode losslessly, with the main exceptions being `usize` and `isize`.
-These are instead first cast as `u16` and `i16`, respectively, due to portability concerns (with respect to embedded systems).
+Most primitives encode losslessly, with the main exceptions being [`usize`] and [`isize`].
+These are instead first cast as [`u16`] and [`i16`], respectively, due to portability concerns (with respect to embedded systems).
 
 See specific types' implementations for notes on their data models.
 
-**Note that the data model is currently not stabilised,** and may not necessarily be in the near future (before [specialisation](https://github.com/rust-lang/rust/issues/31844/)).
+**Note that the data model is currently not stabilised,** and may not necessarily be in the near future (at least before [specialisation](https://github.com/rust-lang/rust/issues/31844/)).
 It may therefore be undesired to store encodings long-term.
 
 ## Usage
 
-This crate revolves around the `Encode` and `Decode` traits which both handle conversions to and from byte streams.
+This crate revolves around the [`Encode`] and [`Decode`] traits which both handle conversions to and from byte streams.
 
-Many standard types come implemented with bZipper, including most primitives as well as some standard library types such as `Option` and `Result`.
-Some [features](#features-flags) enable an extended set of implementations.
+Many standard types come implemented with Librum, including most primitives as well as some standard library types such as [`Option`] and [`Result`].
+Some [features](#feature-flags) enable an extended set of implementations.
 
-It is recommended in most cases to simply derive these two traits for custom types (although this is only supported with enumerations and structures &ndash; not untagged unions).
+It is recommended in most cases to simply derive these two traits for custom types (although this is only supported with enumerations and structures -- not untagged unions).
 Here, each field is *chained* according to declaration order:
 
-```rust
-use bzipper::{Buf, Decode, Encode, SizedEncode};
+```
+use librum::{Buf, Decode, Encode};
 
-#[derive(Debug, Decode, PartialEq, SizedEncode)]
-struct IoRegister {
-    addr:  u32,
-    value: u16,
+##[derive(Debug, Decode, Encode, PartialEq)]
+struct Ints {
+    value0: u8,
+    value1: u16,
+    value2: u32,
+    value3: u64,
+    value4: u128,
 }
 
-let mut buf = Buf::new();
+const VALUE: Ints = Ints {
+    value0: 0x00,
+    value1: 0x02_01,
+    value2: 0x06_05_04_03,
+    value3: 0x0E_0D_0C_0B_0A_09_08_07,
+    value4: 0x1E_1D_1C_1B_1A_19_18_17_16_15_14_13_12_11_10_0F,
+};
 
-buf.write(IoRegister { addr: 0x04000000, value: 0x0402 }).unwrap();
+let mut buf = Buf::with_capacity(0x100);
 
-assert_eq!(buf.len(), 0x6);
-assert_eq!(buf, [0x04, 0x00, 0x00, 0x00, 0x04, 0x02].as_slice());
+buf.write(VALUE).unwrap();
 
-assert_eq!(buf.read().unwrap(), IoRegister { addr: 0x04000000, value: 0x0402 });
+assert_eq!(buf.len(), 0x1F);
+
+assert_eq!(
+    buf,
+    [
+        0x00, 0x02, 0x01, 0x06, 0x05, 0x04, 0x03, 0x0E,
+        0x0D, 0x0C, 0x0B, 0x0A, 0x09, 0x08, 0x07, 0x1E,
+        0x1D, 0x1C, 0x1B, 0x1A, 0x19, 0x18, 0x17, 0x16,
+        0x15, 0x14, 0x13, 0x12, 0x11, 0x10, 0x0F,
+    ].as_slice(),
+);
+
+assert_eq!(buf.read().unwrap(), VALUE);
 ```
 
 ### Buffer types
 
-The `Encode` and `Decode` traits both rely on streams for carrying the manipulated byte streams.
+The [`Encode`] and [`Decode`] traits both rely on streams for carrying the manipulated bytes.
 
-These streams are separated into two type: *O-streams* (output streams) and *i-streams* (input streams).
-Often, but not always, the `Buf` type is preferred over directly calling the `encode` and `decode` methods.
+These streams are separated into two type: [*O-streams*](OStream) (output streams) and [*i-streams*](IStream) (input streams).
+The [`Buf`] type can be used to handle these streams.
 
 ### Encoding
 
-To encode an object directly using the `Encode` trait, simply allocate a buffer for the encoding and wrap it in an `OStream` object:
+To encode an object directly using the `Encode` trait, simply allocate a buffer for the encoding and wrap it in an [`OStream`] object:
 
-```rust
-use bzipper::{Encode, OStream, SizedEncode};
+```
+use librum::{Encode, OStream, SizedEncode};
 
 let mut buf = [0x00; char::MAX_ENCODED_SIZE];
 let mut stream = OStream::new(&mut buf);
@@ -99,8 +120,8 @@ assert_eq!(buf, [0x00, 0x00, 0x04, 0x16].as_slice());
 
 Streams can also be used to chain multiple objects together:
 
-```rust
-use bzipper::{Encode, OStream, SizedEncode};
+```
+use librum::{Encode, OStream, SizedEncode};
 
 let mut buf = [0x0; char::MAX_ENCODED_SIZE * 0x5];
 let mut stream = OStream::new(&mut buf);
@@ -122,7 +143,7 @@ assert_eq!(buf, [
 ]);
 ```
 
-If the encoded type additionally implements `SizedEncode`, then the maximum size of any encoding is guaranteed with the `MAX_ENCODED_SIZE` constant.
+If the encoded type additionally implements [`SizedEncode`], then the maximum size of any encoding is guaranteed with the [`MAX_ENCODED_SIZE`](SizedEncode::MAX_ENCODED_SIZE) constant.
 
 Numerical primitives are encoded in big endian (a.k.a. [network order](https://en.wikipedia.org/wiki/Endianness#Networking)) for... reasons.
 It is recommended for implementors to follow this convention as well.
@@ -130,10 +151,10 @@ It is recommended for implementors to follow this convention as well.
 ### Decoding
 
 Decoding works with a similar syntax to encoding.
-To decode a byte array, simply call the `decode` method with an `IStream` object:
+To decode a byte array, simply call the [`decode`](Decode::decode) method with an [`IStream`] object:
 
-```rust
-use bzipper::{Decode, IStream};
+```
+use librum::{Decode, IStream};
 
 let data = [0x45, 0x54];
 let mut stream = IStream::new(&data);
@@ -158,14 +179,14 @@ assert_eq!(<(u8, u8)>::decode(&mut stream).unwrap(), (0x45, 0x54));
 
 A UDP server/client for geographic data:
 
-```rust
-use bzipper::{Buf, Decode, SizedEncode};
+```
+use librum::{Buf, Encode, Decode, SizedEncode};
 use std::io;
 use std::net::{SocketAddr, ToSocketAddrs, UdpSocket};
 use std::thread::spawn;
 
 // City, region, etc.:
-#[derive(Clone, Copy, Debug, Decode, Eq, PartialEq, SizedEncode)]
+##[derive(Clone, Copy, Debug, Decode, Encode, Eq, PartialEq, SizedEncode)]
 enum Area {
     AlQuds,
     Byzantion,
@@ -175,7 +196,7 @@ enum Area {
 }
 
 // Client-to-server message:
-#[derive(Debug, Decode, PartialEq, SizedEncode)]
+##[derive(Debug, Decode, Encode, PartialEq, SizedEncode)]
 enum Request {
     AtmosphericHumidity { area: Area },
     AtmosphericPressure { area: Area },
@@ -184,7 +205,7 @@ enum Request {
 }
 
 // Server-to-client message:
-#[derive(Debug, Decode, PartialEq, SizedEncode)]
+##[derive(Debug, Decode, Encode, PartialEq, SizedEncode)]
 enum Response {
     AtmosphericHumidity(f64),
     AtmosphericPressure(f64), // Pascal
@@ -260,25 +281,28 @@ spawn(move || {
 
 ## Feature flags
 
-bZipper defines the following features:
+Librum defines the following features:
 
-* `alloc` (default): Enables the `Buf` type and implementations for e.g. `Box` and `Arc`
-* `std` (default): Enables implementations for types such as `Mutex` and `RwLock`
+* *`alloc`: Enables the [`Buf`] type and implementations for e.g. [`Box`](alloc::boxed::Box) and [`Arc`](alloc::sync::Arc)
+* *`proc-macro`: Pulls the procedural macros from the [`librum_macros`](https://crates.io/crates/librum_macros/) crate
+* *`std`: Enables implementations for types such as [`Mutex`](std::sync::Mutex) and [`RwLock`](std::sync::RwLock)
+
+Features marked with * are enabled by default.
 
 ## Documentation
 
-bZipper has its documentation written in-source for use by `rustdoc`.
-See [Docs.rs](https://docs.rs/bzipper/latest/bzipper/) for an on-line, rendered instance.
+Librum has its documentation written in-source for use by `rustdoc`.
+See [Docs.rs](https://docs.rs/librum/latest/librum/) for an on-line, rendered instance.
 
 Currently, these docs make use of some unstable features for the sake of readability.
 The nightly toolchain is therefore required when rendering them.
 
 ## Contribution
 
-bZipper does not accept source code contributions at the moment.
+Librum does not accept source code contributions at the moment.
 This is a personal choice by the maintainer and may be undone in the future.
 
-Do however feel free to open up an issue on [`GitLab`](https://gitlab.com/bjoernager/bzipper/issues/) or (preferably) [`GitHub`](https://github.com/bjoernager/bzipper/issues/) if you feel the need to express any concerns over the project.
+Do however feel free to open up an issue on [`GitLab`](https://gitlab.com/bjoernager/librum/issues/) or (preferably) [`GitHub`](https://github.com/bjoernager/librum/issues/) if you feel the need to express any concerns over the project.
 
 ## Copyright & Licence
 

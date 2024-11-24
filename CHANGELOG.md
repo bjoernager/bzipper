@@ -1,7 +1,39 @@
 # Changelog
 
-This is the changelog of bzipper.
+This is the changelog of Librum.
 See `README.md` for more information.
+
+## 0.12.0
+
+* Support custom errors in `Encode` and `Decode` (using associated `Error` type)
+* Further split `EncodeError` into `IsizeEncodeError`, `UsizeEncodeError`, `CollectionEncodeError`, `RefCellEncodeError`, `ItemEncodeError`, and `EnumEncodeError`
+* Fix the `Encode` implementation of `LinkedList`
+* Further split `DecodeError` into `BoolDecodeError`, `CharDecodeError`, `CStringDecodeError`, `NonZeroDecodeError`, `CollectionDecodeError`, `SystemTimeDecodeError`, `EnumDecodeError`, and `ItemDecodeError`
+* Honour custom discriminant types
+* Add `DecodeBorrowed` trait (implement appropriately)
+* Implement `Decode` for `Cow`
+* Refactor derive macros
+* Update lints
+* Rename test modules from `test` to `tests`
+* Restructure some trait implementations
+* Add `proc-macro` feature flag
+* Add `GenericEncodeError` and `GenericDecodeError` error types for derived traits
+* Add `PrimitiveDiscriminant` trait
+* Lock `Arc` implementations behind atomic widths
+* Add `?Sized` clauses to some `Encode` implementations
+* Update readme
+* Fix doc entry for `SizedStr::new`
+* Update atomic tests
+* Make `SizedEncode` a safe trait
+* Do not automatically implement `Encode` when deriving `SizedEncode`
+* Add `copy_from_slice` method to `SizedSlice`
+* Add `each_ref` and `each_mut` methods to `SizedSlice`
+* Add more benchmarks
+* Remove Ciborium benchmarks
+* Rename project to *Librum*
+* Rename `bzipper` crate to `librum`
+* Rename `bzipper_macros` crate to `librum-macros`
+* Rename `bzipper_benchmarks` crate to `librum-benchmarks`
 
 ## 0.11.0
 
