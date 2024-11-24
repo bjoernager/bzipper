@@ -39,8 +39,8 @@ Please feel free to conduct your own tests of Librum.
 
 ## Data model
 
-Most primitives encode losslessly, with the main exceptions being [`usize`] and [`isize`].
-These are instead first cast as [`u16`] and [`i16`], respectively, due to portability concerns (with respect to embedded systems).
+Most primitives encode losslessly, with the main exceptions being `usize` and `isize`.
+These are instead first cast as `u16` and `i16`, respectively, due to portability concerns (with respect to embedded systems).
 
 See specific types' implementations for notes on their data models.
 
@@ -49,15 +49,15 @@ It may therefore be undesired to store encodings long-term.
 
 ## Usage
 
-This crate revolves around the [`Encode`] and [`Decode`] traits which both handle conversions to and from byte streams.
+This crate revolves around the `Encode` and `Decode` traits which both handle conversions to and from byte streams.
 
-Many standard types come implemented with Librum, including most primitives as well as some standard library types such as [`Option`] and [`Result`].
+Many standard types come implemented with Librum, including most primitives as well as some standard library types such as `Option` and `Result`.
 Some [features](#feature-flags) enable an extended set of implementations.
 
 It is recommended in most cases to simply derive these two traits for custom types (although this is only supported with enumerations and structures -- not untagged unions).
 Here, each field is *chained* according to declaration order:
 
-```
+```rust
 use librum::{Buf, Decode, Encode};
 
 ##[derive(Debug, Decode, Encode, PartialEq)]
@@ -98,16 +98,16 @@ assert_eq!(buf.read().unwrap(), VALUE);
 
 ### Buffer types
 
-The [`Encode`] and [`Decode`] traits both rely on streams for carrying the manipulated bytes.
+The `Encode` and `Decode` traits both rely on streams for carrying the manipulated bytes.
 
-These streams are separated into two type: [*O-streams*](OStream) (output streams) and [*i-streams*](IStream) (input streams).
-The [`Buf`] type can be used to handle these streams.
+These streams are separated into two type: *O-streams* (output streams) and *i-streams* (input streams).
+The `Buf` type can be used to handle these streams.
 
 ### Encoding
 
-To encode an object directly using the `Encode` trait, simply allocate a buffer for the encoding and wrap it in an [`OStream`] object:
+To encode an object directly using the `Encode` trait, simply allocate a buffer for the encoding and wrap it in an `OStream` object:
 
-```
+```rust
 use librum::{Encode, OStream, SizedEncode};
 
 let mut buf = [0x00; char::MAX_ENCODED_SIZE];
@@ -120,7 +120,7 @@ assert_eq!(buf, [0x00, 0x00, 0x04, 0x16].as_slice());
 
 Streams can also be used to chain multiple objects together:
 
-```
+```rust
 use librum::{Encode, OStream, SizedEncode};
 
 let mut buf = [0x0; char::MAX_ENCODED_SIZE * 0x5];
@@ -143,7 +143,7 @@ assert_eq!(buf, [
 ]);
 ```
 
-If the encoded type additionally implements [`SizedEncode`], then the maximum size of any encoding is guaranteed with the [`MAX_ENCODED_SIZE`](SizedEncode::MAX_ENCODED_SIZE) constant.
+If the encoded type additionally implements `SizedEncode`, then the maximum size of any encoding is guaranteed with the `MAX_ENCODED_SIZE` constant.
 
 Numerical primitives are encoded in big endian (a.k.a. [network order](https://en.wikipedia.org/wiki/Endianness#Networking)) for... reasons.
 It is recommended for implementors to follow this convention as well.
@@ -151,9 +151,9 @@ It is recommended for implementors to follow this convention as well.
 ### Decoding
 
 Decoding works with a similar syntax to encoding.
-To decode a byte array, simply call the [`decode`](Decode::decode) method with an [`IStream`] object:
+To decode a byte array, simply call the `decode` method with an `IStream` object:
 
-```
+```rust
 use librum::{Decode, IStream};
 
 let data = [0x45, 0x54];
@@ -179,7 +179,7 @@ assert_eq!(<(u8, u8)>::decode(&mut stream).unwrap(), (0x45, 0x54));
 
 A UDP server/client for geographic data:
 
-```
+```rust
 use librum::{Buf, Encode, Decode, SizedEncode};
 use std::io;
 use std::net::{SocketAddr, ToSocketAddrs, UdpSocket};
@@ -283,9 +283,9 @@ spawn(move || {
 
 Librum defines the following features:
 
-* *`alloc`: Enables the [`Buf`] type and implementations for e.g. [`Box`](alloc::boxed::Box) and [`Arc`](alloc::sync::Arc)
+* *`alloc`: Enables the `Buf` type and implementations for e.g. `Box` and `Arc`
 * *`proc-macro`: Pulls the procedural macros from the [`librum_macros`](https://crates.io/crates/librum_macros/) crate
-* *`std`: Enables implementations for types such as [`Mutex`](std::sync::Mutex) and [`RwLock`](std::sync::RwLock)
+* *`std`: Enables implementations for types such as `Mutex` and `RwLock`
 
 Features marked with * are enabled by default.
 
@@ -302,7 +302,7 @@ The nightly toolchain is therefore required when rendering them.
 Librum does not accept source code contributions at the moment.
 This is a personal choice by the maintainer and may be undone in the future.
 
-Do however feel free to open up an issue on [`GitLab`](https://gitlab.com/bjoernager/librum/issues/) or (preferably) [`GitHub`](https://github.com/bjoernager/librum/issues/) if you feel the need to express any concerns over the project.
+Do however feel free to open up an issue on [GitLab](https://gitlab.com/bjoernager/librum/issues/) or (preferably) [GitHub](https://github.com/bjoernager/librum/issues/) if you feel the need to express any concerns over the project.
 
 ## Copyright & Licence
 

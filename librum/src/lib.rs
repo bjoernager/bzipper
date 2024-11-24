@@ -323,7 +323,7 @@
 //! Librum does not accept source code contributions at the moment.
 //! This is a personal choice by the maintainer and may be undone in the future.
 //!
-//! Do however feel free to open up an issue on [`GitLab`](https://gitlab.com/bjoernager/librum/issues/) or (preferably) [`GitHub`](https://github.com/bjoernager/librum/issues/) if you feel the need to express any concerns over the project.
+//! Do however feel free to open up an issue on [GitLab](https://gitlab.com/bjoernager/librum/issues/) or (preferably) [GitHub](https://github.com/bjoernager/librum/issues/) if you feel the need to express any concerns over the project.
 //!
 //! # Copyright & Licence
 //!

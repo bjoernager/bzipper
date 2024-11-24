@@ -3,6 +3,10 @@
 This is the changelog of Librum.
 See `README.md` for more information.
 
+## 0.12.1
+
+* Update readme
+
 ## 0.12.0
 
 * Support custom errors in `Encode` and `Decode` (using associated `Error` type)
