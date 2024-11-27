@@ -71,7 +71,7 @@ use core::slice::{self, SliceIndex};
 /// let mut buf = Buf::new();
 ///
 /// buf.write(Request::Join { username: "epsiloneridani".parse().unwrap() }).unwrap();
-/// assert_eq!(buf.as_slice(), b"\0\0\0\x0Eepsiloneridani");
+/// assert_eq!(buf.as_slice(), b"\0\0\x0E\0epsiloneridani");
 ///
 /// // Do something with the buffer...
 /// ```
@@ -83,6 +83,7 @@ pub struct Buf<T> {
 	_ty: PhantomData<fn() -> T>,
 }
 
+#[cfg_attr(doc, doc(cfg(feature = "alloc")))]
 impl<T> Buf<T> {
 	/// Allocates a new buffer suitable for encoding.
 	///
@@ -266,6 +267,7 @@ impl<T> Buf<T> {
 	}
 }
 
+#[cfg_attr(doc, doc(cfg(feature = "alloc")))]
 impl<T: Encode> Buf<T> {
 	/// Encodes an object into the buffer.
 	///
@@ -287,6 +289,7 @@ impl<T: Encode> Buf<T> {
 	}
 }
 
+#[cfg_attr(doc, doc(cfg(feature = "alloc")))]
 impl<T: Decode> Buf<T> {
 	/// Decodes an object from the buffer.
 	///
@@ -310,6 +313,7 @@ impl<T: Decode> Buf<T> {
 	}
 }
 
+#[cfg_attr(doc, doc(cfg(feature = "alloc")))]
 impl<T: SizedEncode> Buf<T> {
 	/// Allocates a new buffer suitable for encoding.
 	///
@@ -323,6 +327,7 @@ impl<T: SizedEncode> Buf<T> {
 }
 
 /// See also [`as_mut_slice`](Self::as_mut_slice).
+#[cfg_attr(doc, doc(cfg(feature = "alloc")))]
 impl<T> AsMut<[u8]> for Buf<T> {
 	#[inline(always)]
 	fn as_mut(&mut self) -> &mut [u8] {
@@ -331,6 +336,7 @@ impl<T> AsMut<[u8]> for Buf<T> {
 }
 
 /// See also [`as_slice`](Self::as_slice).
+#[cfg_attr(doc, doc(cfg(feature = "alloc")))]
 impl<T> AsRef<[u8]> for Buf<T> {
 	#[inline(always)]
 	fn as_ref(&self) -> &[u8] {
@@ -339,6 +345,7 @@ impl<T> AsRef<[u8]> for Buf<T> {
 }
 
 /// See also [`as_slice`](Self::as_slice).
+#[cfg_attr(doc, doc(cfg(feature = "alloc")))]
 impl<T> Borrow<[u8]> for Buf<T> {
 	#[inline(always)]
 	fn borrow(&self) -> &[u8] {
@@ -347,6 +354,7 @@ impl<T> Borrow<[u8]> for Buf<T> {
 }
 
 /// See also [`as_mut_slice`](Self::as_mut_slice).
+#[cfg_attr(doc, doc(cfg(feature = "alloc")))]
 impl<T> BorrowMut<[u8]> for Buf<T> {
 	#[inline(always)]
 	fn borrow_mut(&mut self) -> &mut [u8] {
@@ -354,11 +362,13 @@ impl<T> BorrowMut<[u8]> for Buf<T> {
 	}
 }
 
+#[cfg_attr(doc, doc(cfg(feature = "alloc")))]
 impl<T> Debug for Buf<T> {
 	#[inline(always)]
 	fn fmt(&self, f: &mut Formatter) -> fmt::Result { write!(f, "{:?}", self.as_slice()) }
 }
 
+#[cfg_attr(doc, doc(cfg(feature = "alloc")))]
 impl<T: SizedEncode> Default for Buf<T> {
 	#[inline(always)]
 	fn default() -> Self {
@@ -366,6 +376,7 @@ impl<T: SizedEncode> Default for Buf<T> {
 	}
 }
 
+#[cfg_attr(doc, doc(cfg(feature = "alloc")))]
 impl<T> Deref for Buf<T> {
 	type Target = [u8];
 
@@ -375,6 +386,7 @@ impl<T> Deref for Buf<T> {
 	}
 }
 
+#[cfg_attr(doc, doc(cfg(feature = "alloc")))]
 impl<T> DerefMut for Buf<T> {
 	#[inline(always)]
 	fn deref_mut(&mut self) -> &mut Self::Target {
@@ -382,6 +394,7 @@ impl<T> DerefMut for Buf<T> {
 	}
 }
 
+#[cfg_attr(doc, doc(cfg(feature = "alloc")))]
 impl<T, I: SliceIndex<[u8]>> Index<I> for Buf<T> {
 	type Output = I::Output;
 
@@ -391,6 +404,7 @@ impl<T, I: SliceIndex<[u8]>> Index<I> for Buf<T> {
 	}
 }
 
+#[cfg_attr(doc, doc(cfg(feature = "alloc")))]
 impl<T, I: SliceIndex<[u8]>> IndexMut<I> for Buf<T> {
 	#[inline(always)]
 	fn index_mut(&mut self, index: I) -> &mut Self::Output {
@@ -398,6 +412,7 @@ impl<T, I: SliceIndex<[u8]>> IndexMut<I> for Buf<T> {
 	}
 }
 
+#[cfg_attr(doc, doc(cfg(feature = "alloc")))]
 impl<T> PartialEq<[u8]> for Buf<T> {
 	#[inline(always)]
 	fn eq(&self, other: &[u8]) -> bool {
@@ -405,6 +420,7 @@ impl<T> PartialEq<[u8]> for Buf<T> {
 	}
 }
 
+#[cfg_attr(doc, doc(cfg(feature = "alloc")))]
 impl<T> PartialEq<&[u8]> for Buf<T> {
 	#[inline(always)]
 	fn eq(&self, other: &&[u8]) -> bool {
@@ -412,6 +428,7 @@ impl<T> PartialEq<&[u8]> for Buf<T> {
 	}
 }
 
+#[cfg_attr(doc, doc(cfg(feature = "alloc")))]
 impl<T> PartialEq<&mut [u8]> for Buf<T> {
 	#[inline(always)]
 	fn eq(&self, other: &&mut [u8]) -> bool {

@@ -43,16 +43,16 @@ use alloc::sync::Arc;
 
 /// Indicates a scheme relationship between borrowed and owned types.
 ///
-/// Implementing this trait is a promise that <code>&lt;Self as [Decode]&gt;::[decode](Decode::decode)</code> can handle any encoding of `B`.
-/// This is mainly useful for types that implement [`Encode`](crate::Encode::encode) but do not implement `Decode` for whatever reason (mostly the act of being unsized).
+/// Implementing this trait is specifically a promise that <code>&lt;Self as [Decode]&gt;::[decode](Decode::decode)</code> can handle any encoding of `B`.
 ///
+/// This trait is mainly useful for types that implement [`Encode`](crate::Encode::encode) but do not implement `Decode` for whatever reason (mostly due to being unsized).
 /// The primary user of this trait is the `Decode` implementation of [`Cow`](alloc::borrow::Cow).
 ///
 /// # Arrays
 ///
-/// This trait in the form <code>DecodeBorrowed&lt;[\[T\]]&gt;</code> is not implemented for [`[T; N]`](array) for the simple reason that arrays they do not encode their length (as it is hard coded into the type), thus rendering their scheme incompatible with that of slices.
+/// This trait in the form <code>DecodeBorrowed&lt;[\[T\]]&gt;</code> is not implemented for [`[T; N]`](array) due to the fact that arrays they do not encode their length as it is instead hard-coded into the type, thus rendering their scheme incompatible with that of slices.
 ///
-/// [\[T\]]: array
+/// [\[T\]]: slice
 ///
 /// An alternative to using arrays would be to use [`SizedSlice`](crate::SizedSlice).
 pub trait DecodeBorrowed<B: ?Sized>: Borrow<B> + Decode { }

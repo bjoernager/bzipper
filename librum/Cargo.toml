@@ -1,6 +1,6 @@
 [package]
 name          = "librum"
-version       = "0.12.1"
+version       = "0.13.0"
 edition       = "2021"
 rust-version  = "1.83"
 documentation = "https://docs.rs/librum/"
@@ -25,7 +25,7 @@ proc-macro = ["librum-macros"]
 std        = []
 
 [dependencies]
-librum-macros = { path = "../librum-macros", version = "0.12.1", optional = true}
+librum-macros = { path = "../librum-macros", version = "0.13.0", optional = true}
 
 [lints]
 workspace = true

@@ -47,7 +47,7 @@ use core::net::{
 	SocketAddrV4,
 	SocketAddrV6,
 };
-use core::num::{NonZero, Saturating, Wrapping};
+use core::num::{Saturating, Wrapping};
 use core::ops::{
 	Bound,
 	Range,
@@ -101,6 +101,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 /// Denotes a type capable of being decoded.
 pub trait Decode: Sized {
+	/// The type returned in case of error.
 	type Error;
 
 	/// Decodes an object from the provided stream.
@@ -118,8 +119,8 @@ impl<T: Decode> Decode for (T, ) {
 
 	#[inline(always)]
 	fn decode(stream: &mut IStream) -> Result<Self, Self::Error> {
-		let value = (Decode::decode(stream)?, );
-		Ok(value)
+		let this = (Decode::decode(stream)?, );
+		Ok(this)
 	}
 }
 
@@ -130,7 +131,6 @@ impl<T: Decode, const N: usize> Decode for [T; N] {
 	fn decode(stream: &mut IStream) -> Result<Self, Self::Error> {
 		// Initialise the array incrementally.
 
-		// SAFETY: Always safe.
  		let mut buf: [MaybeUninit<T>; N] = unsafe { MaybeUninit::uninit().assume_init() };
 
 		for (i, item) in buf.iter_mut().enumerate() {
@@ -807,16 +807,14 @@ impl<T: Decode> Decode for Wrapping<T> {
 macro_rules! impl_numeric {
 	($ty:ty$(,)?) => {
 		impl ::librum::Decode for $ty {
-			type Error = Infallible;
+			type Error = ::core::convert::Infallible;
 
 			#[inline]
-			fn decode(stream: &mut IStream) -> ::core::result::Result<Self, Self::Error> {
-				let data = stream
-					.read(Self::MAX_ENCODED_SIZE)
-					.try_into()
-					.expect(concat!("mismatch between `", stringify!($ty), "::MAX_ENCODED_SIZE` and buffer needed by `", stringify!($ty), "::from_be_bytes`"));
+			fn decode(stream: &mut ::librum::IStream) -> ::core::result::Result<Self, Self::Error> {
+				let mut data = [::core::default::Default::default(); Self::MAX_ENCODED_SIZE];
+				stream.read_into(&mut data);
 
-				let this = Self::from_be_bytes(data);
+				let this = Self::from_le_bytes(data);
 				Ok(this)
 			}
 		}
@@ -830,7 +828,8 @@ macro_rules! impl_tuple {
 		#[doc(hidden)]
 		impl<$($tys, )* E> ::librum::Decode for ($($tys, )*)
 		where
-			$($tys: Decode<Error = E>, )* {
+			$($tys: Decode<Error = E>, )*
+		{
 			type Error = E;
 
 			#[inline(always)]
@@ -847,14 +846,14 @@ macro_rules! impl_tuple {
 
 macro_rules! impl_non_zero {
 	($ty:ty$(,)?) => {
-		impl ::librum::Decode for NonZero<$ty> {
+		impl ::librum::Decode for ::core::num::NonZero<$ty> {
 			type Error = ::librum::error::NonZeroDecodeError;
 
 			#[inline]
-			fn decode(stream: &mut IStream) -> ::core::result::Result<Self, Self::Error> {
-				let value = <$ty as ::librum::Decode>::decode(stream).unwrap();
+			fn decode(stream: &mut ::librum::IStream) -> ::core::result::Result<Self, Self::Error> {
+				let Ok(value) = <$ty as ::librum::Decode>::decode(stream);
 
-				let this = NonZero::new(value)
+				let this = ::core::num::NonZero::new(value)
 					.ok_or(::librum::error::NonZeroDecodeError)?;
 
 				Ok(this)
@@ -866,16 +865,17 @@ macro_rules! impl_non_zero {
 macro_rules! impl_atomic {
 	{
 		width: $width:literal,
-		ty: $ty:ty$(,)?
+		ty: $ty:ty,
+		atomic_ty: $atomic_ty:ty$(,)?
 	} => {
 		#[cfg(target_has_atomic = $width)]
 		#[cfg_attr(doc, doc(cfg(target_has_atomic = $width)))]
-		impl ::librum::Decode for $ty {
-			type Error = ::core::convert::Infallible;
+		impl ::librum::Decode for $atomic_ty {
+			type Error = <$ty as ::librum::Decode>::Error;
 
 			#[inline(always)]
 			fn decode(stream: &mut ::librum::IStream) -> ::core::result::Result<Self, Self::Error> {
-				let value = ::librum::Decode::decode(stream).unwrap();
+				let value = ::librum::Decode::decode(stream)?;
 
 				let this = Self::new(value);
 				Ok(this)
@@ -1024,55 +1024,66 @@ impl_non_zero!(usize);
 
 impl_atomic! {
 	width: "8",
-	ty: std::sync::atomic::AtomicBool,
+	ty: bool,
+	atomic_ty: std::sync::atomic::AtomicBool,
 }
 
 impl_atomic! {
 	width: "16",
-	ty: std::sync::atomic::AtomicI16,
+	ty: i16,
+	atomic_ty: std::sync::atomic::AtomicI16,
 }
 
 impl_atomic! {
 	width: "32",
-	ty: std::sync::atomic::AtomicI32,
+	ty: i32,
+	atomic_ty: std::sync::atomic::AtomicI32,
 }
 
 impl_atomic! {
 	width: "64",
-	ty: std::sync::atomic::AtomicI64,
+	ty: i64,
+	atomic_ty: std::sync::atomic::AtomicI64,
 }
 
 impl_atomic! {
 	width: "8",
-	ty: std::sync::atomic::AtomicI8,
+	ty: i8,
+	atomic_ty: std::sync::atomic::AtomicI8,
 }
 
 impl_atomic! {
 	width: "ptr",
-	ty: std::sync::atomic::AtomicIsize,
+	ty: isize,
+	atomic_ty: std::sync::atomic::AtomicIsize,
 }
 
 impl_atomic! {
 	width: "16",
-	ty: std::sync::atomic::AtomicU16,
+	ty: u16,
+	atomic_ty: std::sync::atomic::AtomicU16,
 }
 
 impl_atomic! {
 	width: "32",
-	ty: std::sync::atomic::AtomicU32,
+	ty: u32,
+	atomic_ty: std::sync::atomic::AtomicU32,
 }
 
 impl_atomic! {
 	width: "64",
-	ty: std::sync::atomic::AtomicU64,
+	ty: u64,
+	atomic_ty: std::sync::atomic::AtomicU64,
 }
 
 impl_atomic! {
 	width: "8",
-	ty: std::sync::atomic::AtomicU8,
+	ty: u8,
+	atomic_ty: std::sync::atomic::AtomicU8,
 }
 
 impl_atomic! {
 	width: "ptr",
-	ty: std::sync::atomic::AtomicUsize,
+	ty: usize,
+	atomic_ty: std::sync::atomic::AtomicUsize,
 }

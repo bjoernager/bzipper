@@ -1,7 +1,21 @@
 # Changelog
 
-This is the changelog of Librum.
+This is the changelog of [Librum](https://mandelbrot.dk/librum/).
 See `README.md` for more information.
+
+## 0.13.0
+
+* Add decode benchmarks
+* Add missing docs for `{Decode, Encode}::Error`
+* Encode numericals in little-endian
+* Add `read_into` method to `IStream`
+* Fix `<AtomicBool as Decode>::Error` (and invalid values resulting in panics from `decode`)
+* Add `Copy` bound to `PrimitiveDiscriminant`
+* Update docs
+* Refactor benchmarks
+* Run benchmarks multiple times
+* Bump dependency versions
+* Update readme
 
 ## 0.12.1
 

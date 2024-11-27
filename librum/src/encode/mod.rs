@@ -131,6 +131,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 /// }
 /// ```
 pub trait Encode {
+	/// The type returned in case of error.
 	type Error;
 
 	/// Encodes `self` into the provided stream.
@@ -849,7 +850,7 @@ macro_rules! impl_numeric {
 
 			#[inline]
 			fn encode(&self, stream: &mut OStream) -> ::core::result::Result<(), Self::Error> {
-				stream.write(&self.to_be_bytes());
+				stream.write(&self.to_le_bytes());
 
 				Ok(())
 			}

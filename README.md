@@ -13,34 +13,42 @@ This crate is compatible with `no_std`.
 
 ## Performance
 
-As Librum is optimised exclusively for a single, binary format, it may outperform other libraries that are more generic in nature.
+As Librum is optimised exclusively for a single, binary format, it *may* outperform other libraries that are more generic in nature.
 
 The `librum-benchmarks` binary compares multiple scenarios using Librum and other, similar crates.
-According to my runs on an AMD Ryzen 7 3700X, these benchmarks indicate that Librum outperform all of the tested crates -- as demonstrated in the following table:
+According to my runs on an AMD Ryzen 7 3700X with default settings, these benchmarks indicate that Librum usually outperforms the other tested crates -- as demonstrated in the following table:
 
 | Benchmark                          | [Bincode] | [Borsh] | Librum | [Postcard] |
 | :--------------------------------- | --------: | ------: | ------: | ---------: |
-| `encode_u8`                        |     1.306 |   1.315 |   1.150 |      1.304 |
-| `encode_u32`                       |     1.321 |   1.317 |   1.146 |      3.016 |
-| `encode_u128`                      |     2.198 |   2.103 |   1.509 |      6.376 |
+| `encode_u8`                        |     1.004 |   0.947 |   0.806 |      0.972 |
+| `encode_u32`                       |     1.130 |   1.084 |   0.749 |      2.793 |
+| `encode_u128`                      |     2.340 |   2.328 |   1.543 |      6.380 |
 | `encode_struct_unit`               |     0.000 |   0.000 |   0.000 |      0.000 |
-| `encode_struct_unnamed`            |     1.362 |   1.448 |   1.227 |      2.659 |
-| `encode_struct_named`              |     3.114 |   1.530 |   0.969 |      3.036 |
-| `encode_enum_unit`                 |     0.252 |   0.297 |   0.000 |      0.299 |
-| **Total time** &#8594;             |     9.553 |   8.010 |   6.001 |     16.691 |
-| **Total deviation (p.c.)** &#8594; |       +59 |     +33 |      ±0 |       +178 |
+| `encode_struct_unnamed`            |     1.218 |   1.160 |   0.838 |      2.392 |
+| `encode_struct_named`              |     3.077 |   1.501 |   0.975 |      3.079 |
+| `encode_enum_unit`                 |     0.260 |   0.310 |   0.000 |      0.303 |
+| `decode_u8`                        |     1.116 |   1.106 |   1.110 |      1.102 |
+| `decode_non_zero_u8`               |     1.228 |   1.236 |   1.269 |      1.263 |
+| **Total time** &#8594;             |    11.373 |   9.672 |   7.291 |     18.284 |
+| **Total deviation (p.c.)** &#8594; |       +56 |     +33 |      ±0 |       +150 |
 
 [Bincode]: https://crates.io/crates/bincode/
 [Borsh]: https://crates.io/crates/borsh/
 [Postcard]: https://crates.io/crates/postcard/
 
 All quantities are measured in seconds unless otherwise noted.
-Please feel free to conduct your own tests of Librum.
+
+Currently, Librum's weakest point seems to be decoding.
+Please note that I myself find large (relatively speaking) inconsistencies between runs in these last two benchmarks.
+Do feel free to conduct your own tests of Librum.
 
 ## Data model
 
 Most primitives encode losslessly, with the main exceptions being `usize` and `isize`.
 These are instead first cast as `u16` and `i16`, respectively, due to portability concerns (with respect to embedded systems).
+
+Numerical primitives in general encode as little endian (and **not** ["network order"](https://en.wikipedia.org/wiki/Endianness#Networking)).
+It is recommended for implementors to follow this convention as well.
 
 See specific types' implementations for notes on their data models.
 
@@ -49,12 +57,12 @@ It may therefore be undesired to store encodings long-term.
 
 ## Usage
 
-This crate revolves around the `Encode` and `Decode` traits which both handle conversions to and from byte streams.
+This crate revolves around the `Encode` and `Decode` traits, both of which handle conversions to and from byte streams.
 
 Many standard types come implemented with Librum, including most primitives as well as some standard library types such as `Option` and `Result`.
 Some [features](#feature-flags) enable an extended set of implementations.
 
-It is recommended in most cases to simply derive these two traits for custom types (although this is only supported with enumerations and structures -- not untagged unions).
+It is recommended in most cases to simply derive these two traits for user-defined types (although this is only supported with enumerations and structures -- not untagged unions).
 Here, each field is *chained* according to declaration order:
 
 ```rust
@@ -86,10 +94,10 @@ assert_eq!(buf.len(), 0x1F);
 assert_eq!(
     buf,
     [
-        0x00, 0x02, 0x01, 0x06, 0x05, 0x04, 0x03, 0x0E,
-        0x0D, 0x0C, 0x0B, 0x0A, 0x09, 0x08, 0x07, 0x1E,
-        0x1D, 0x1C, 0x1B, 0x1A, 0x19, 0x18, 0x17, 0x16,
-        0x15, 0x14, 0x13, 0x12, 0x11, 0x10, 0x0F,
+        0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
+        0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F,
+        0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17,
+        0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E
     ].as_slice(),
 );
 
@@ -115,7 +123,7 @@ let mut stream = OStream::new(&mut buf);
 
 'Ж'.encode(&mut stream).unwrap();
 
-assert_eq!(buf, [0x00, 0x00, 0x04, 0x16].as_slice());
+assert_eq!(buf, [0x16, 0x04, 0x00, 0x00].as_slice());
 ```
 
 Streams can also be used to chain multiple objects together:
@@ -137,16 +145,13 @@ let mut stream = OStream::new(&mut buf);
 'ا'.encode(&mut stream).unwrap();
 
 assert_eq!(buf, [
-    0x00, 0x00, 0x06, 0x44, 0x00, 0x00, 0x06, 0x27,
-    0x00, 0x00, 0x06, 0x45, 0x00, 0x00, 0x06, 0x2F,
-    0x00, 0x00, 0x06, 0x27
+    0x44, 0x06, 0x00, 0x00, 0x27, 0x06, 0x00, 0x00,
+    0x45, 0x06, 0x00, 0x00, 0x2F, 0x06, 0x00, 0x00,
+    0x27, 0x06, 0x00, 0x00
 ]);
 ```
 
 If the encoded type additionally implements `SizedEncode`, then the maximum size of any encoding is guaranteed with the `MAX_ENCODED_SIZE` constant.
-
-Numerical primitives are encoded in big endian (a.k.a. [network order](https://en.wikipedia.org/wiki/Endianness#Networking)) for... reasons.
-It is recommended for implementors to follow this convention as well.
 
 ### Decoding
 
@@ -156,7 +161,7 @@ To decode a byte array, simply call the `decode` method with an `IStream` object
 ```rust
 use librum::{Decode, IStream};
 
-let data = [0x45, 0x54];
+let data = [0x54, 0x45];
 let mut stream = IStream::new(&data);
 
 assert_eq!(u16::decode(&mut stream).unwrap(), 0x4554);
@@ -165,14 +170,14 @@ assert_eq!(u16::decode(&mut stream).unwrap(), 0x4554);
 
 stream = IStream::new(&data);
 
-assert_eq!(u8::decode(&mut stream).unwrap(), 0x45);
 assert_eq!(u8::decode(&mut stream).unwrap(), 0x54);
+assert_eq!(u8::decode(&mut stream).unwrap(), 0x45);
 
 // Including as tuples:
 
 stream = IStream::new(&data);
 
-assert_eq!(<(u8, u8)>::decode(&mut stream).unwrap(), (0x45, 0x54));
+assert_eq!(<(u8, u8)>::decode(&mut stream).unwrap(), (0x54, 0x45));
 ```
 
 ## Examples
@@ -284,7 +289,7 @@ spawn(move || {
 Librum defines the following features:
 
 * *`alloc`: Enables the `Buf` type and implementations for e.g. `Box` and `Arc`
-* *`proc-macro`: Pulls the procedural macros from the [`librum_macros`](https://crates.io/crates/librum_macros/) crate
+* *`proc-macro`: Pulls the procedural macros from the `librum-macros` crate
 * *`std`: Enables implementations for types such as `Mutex` and `RwLock`
 
 Features marked with * are enabled by default.

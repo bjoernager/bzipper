@@ -42,7 +42,7 @@ pub(crate) use sealed::PrimitiveDiscriminant as SealedPrimitiveDiscriminant;
 /// Note that this trait is implemented for these two types regardless.
 ///
 /// Internally -- specifically in the [`GenericDecodeError`](crate::error::GenericDecodeError) enumeration -- this trait guarantees representability in the `u128` type.
-pub trait PrimitiveDiscriminant: SealedPrimitiveDiscriminant + Sized { }
+pub trait PrimitiveDiscriminant: Copy + SealedPrimitiveDiscriminant + Sized { }
 
 macro_rules! impl_primitive_discriminant {
 	($ty:ty) => {

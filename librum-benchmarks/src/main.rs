@@ -1,12 +1,15 @@
 // Copyright 2024 Gabriel Bjørnager Jensen.
 
 use rand::random;
-
-// Bincode uses so much memory that it crashes if
-// we set `VALUE_COUNT` too high.
-const VALUE_COUNT: usize = 0x0FFFFFFF;
-
+use rand::distributions::{Distribution, Standard};
+use std::array;
+use std::num::NonZero;
 use std::time::Instant;
+use zerocopy::{Immutable, IntoBytes};
+
+const TEST_COUNT: u32 = 0x4;
+
+const VALUE_COUNT: usize = 0xFFFFFFF;
 
 macro_rules! benchmark {
 	{
@@ -51,18 +54,37 @@ macro_rules! benchmark {
 
 		let mut total_bincode_duration  = 0.0;
 		let mut total_borsh_duration    = 0.0;
-		let mut total_librum_duration  = 0.0;
+		let mut total_librum_duration   = 0.0;
 		let mut total_postcard_duration = 0.0;
 
 		$({
 			eprintln!();
-			eprintln!(concat!("\u{001B}[001mrunning benchmark `", stringify!($name), "`...\u{001B}[022m"));
-			eprint!("\u{001B}[093m");
+			eprint!(concat!("\u{001B}[001mrunning benchmark `", stringify!($name), "`...\u{001B}[022m"));
 
-			let bincode_duration  = time! { $bincode_op };
-			let borsh_duration    = time! { $borsh_op };
-			let librum_duration  = time! { $librum_op };
-			let postcard_duration = time! { $postcard_op };
+			let mut bincode_duration  = 0.0;
+			let mut borsh_duration    = 0.0;
+			let mut librum_duration   = 0.0;
+			let mut postcard_duration = 0.0;
+
+			for i in 0x0..TEST_COUNT {
+				eprint!(" {i}...");
+
+				eprint!("\u{001B}[093m");
+
+				bincode_duration  += time! { $bincode_op };
+				borsh_duration    += time! { $borsh_op };
+				librum_duration   += time! { $librum_op };
+				postcard_duration += time! { $postcard_op };
+
+				eprint!("\u{001B}[000m");
+			}
+
+			eprintln!();
+
+			bincode_duration  /= f64::from(TEST_COUNT);
+			borsh_duration    /= f64::from(TEST_COUNT);
+			librum_duration   /= f64::from(TEST_COUNT);
+			postcard_duration /= f64::from(TEST_COUNT);
 
 			eprint!("\u{001B}[000m");
 			eprintln!("bincode:  {}", format_score(bincode_duration,  librum_duration));
@@ -72,7 +94,7 @@ macro_rules! benchmark {
 
 			total_bincode_duration  += bincode_duration;
 			total_borsh_duration    += borsh_duration;
-			total_librum_duration  += librum_duration;
+			total_librum_duration   += librum_duration;
 			total_postcard_duration += postcard_duration;
 		})*
 
@@ -139,6 +161,24 @@ impl Named {
 	}
 }
 
+fn generate_random_data<T>(item_size: usize, value_count: usize) -> impl Iterator<Item = u8>
+where
+	T:        Immutable + IntoBytes + Sized,
+	Standard: Distribution<T>,
+{
+	let count = item_size * value_count;
+
+	let mut data = Vec::new();
+
+	for _ in 0x0..count {
+		let value = random::<T>();
+
+		data.extend(value.as_bytes());
+	}
+
+	data.into_iter()
+}
+
 fn main() {
 	println!("#####################");
 	println!("# LIBRUM BENCHMARKS #");
@@ -164,6 +204,7 @@ fn main() {
 	println!("some benchmarks.");
 	println!();
 
+	eprintln!("test_count:  {TEST_COUNT}");
 	eprintln!("value_count: {VALUE_COUNT}");
 
 	benchmark! {
@@ -173,9 +214,9 @@ fn main() {
 
 				use bincode::serialize_into;
 
-				let buf_size = size_of::<u8>();
+				const ITEM_SIZE: usize = size_of::<u8>();
 
-				let mut buf = vec![0x00; buf_size * VALUE_COUNT];
+				let mut buf = vec![0x00; ITEM_SIZE * VALUE_COUNT];
 
 				for _ in 0x0..VALUE_COUNT {
 					serialize_into(&mut buf, &random::<u8>()).unwrap();
@@ -183,9 +224,9 @@ fn main() {
 			}
 
 			borsh: {
-				let buf_size = size_of::<u8>();
+				const ITEM_SIZE: usize = size_of::<u8>();
 
-				let mut buf = vec![0x00; buf_size * VALUE_COUNT];
+				let mut buf = vec![0x00; ITEM_SIZE * VALUE_COUNT];
 
 				for _ in 0x0..VALUE_COUNT {
 					borsh::to_writer(&mut buf, &random::<u8>()).unwrap();
@@ -195,9 +236,9 @@ fn main() {
 			librum: {
 				use librum::{Encode, OStream, SizedEncode};
 
-				let buf_size = u8::MAX_ENCODED_SIZE;
+				const ITEM_SIZE: usize = u8::MAX_ENCODED_SIZE;
 
-				let mut buf = vec![0x00; buf_size * VALUE_COUNT].into_boxed_slice();
+				let mut buf = vec![0x00; ITEM_SIZE * VALUE_COUNT].into_boxed_slice();
 				let mut stream = OStream::new(&mut buf);
 
 				for _ in 0x0..VALUE_COUNT {
@@ -206,9 +247,9 @@ fn main() {
 			}
 
 			postcard: {
-				let buf_size = size_of::<u8>();
+				const ITEM_SIZE: usize = size_of::<u8>();
 
-				let mut buf = vec![0x00; buf_size * VALUE_COUNT];
+				let mut buf = vec![0x00; ITEM_SIZE * VALUE_COUNT];
 
 				for _ in 0x0..VALUE_COUNT {
 					postcard::to_io(&random::<u8>(), &mut buf).unwrap();
@@ -220,9 +261,9 @@ fn main() {
 			bincode: {
 				use bincode::serialize_into;
 
-				let buf_size = size_of::<u32>();
+				const ITEM_SIZE: usize = size_of::<u32>();
 
-				let mut buf = vec![0x00; buf_size * VALUE_COUNT];
+				let mut buf = vec![0x00; ITEM_SIZE * VALUE_COUNT];
 
 				for _ in 0x0..VALUE_COUNT {
 					serialize_into(&mut buf, &random::<u32>()).unwrap();
@@ -230,9 +271,9 @@ fn main() {
 			}
 
 			borsh: {
-				let buf_size = size_of::<u32>();
+				const ITEM_SIZE: usize = size_of::<u32>();
 
-				let mut buf = vec![0x00; buf_size * VALUE_COUNT];
+				let mut buf = vec![0x00; ITEM_SIZE * VALUE_COUNT];
 
 				for _ in 0x0..VALUE_COUNT {
 					borsh::to_writer(&mut buf, &random::<u32>()).unwrap();
@@ -242,9 +283,9 @@ fn main() {
 			librum: {
 				use librum::{Encode, OStream, SizedEncode};
 
-				let buf_size = u32::MAX_ENCODED_SIZE;
+				const ITEM_SIZE: usize = u32::MAX_ENCODED_SIZE;
 
-				let mut buf = vec![0x00; buf_size * VALUE_COUNT].into_boxed_slice();
+				let mut buf = vec![0x00; ITEM_SIZE * VALUE_COUNT].into_boxed_slice();
 				let mut stream = OStream::new(&mut buf);
 
 				for _ in 0x0..VALUE_COUNT {
@@ -253,9 +294,9 @@ fn main() {
 			}
 
 			postcard: {
-				let buf_size = size_of::<u32>();
+				const ITEM_SIZE: usize = size_of::<u32>();
 
-				let mut buf = vec![0x00; buf_size * VALUE_COUNT];
+				let mut buf = vec![0x00; ITEM_SIZE * VALUE_COUNT];
 
 				for _ in 0x0..VALUE_COUNT {
 					postcard::to_io(&random::<u32>(), &mut buf).unwrap();
@@ -267,9 +308,9 @@ fn main() {
 			bincode: {
 				use bincode::serialize_into;
 
-				let buf_size = size_of::<u128>();
+				const ITEM_SIZE: usize = size_of::<u128>();
 
-				let mut buf = vec![0x00; buf_size * VALUE_COUNT];
+				let mut buf = vec![0x00; ITEM_SIZE * VALUE_COUNT];
 
 				for _ in 0x0..VALUE_COUNT {
 					serialize_into(&mut buf, &random::<u128>()).unwrap();
@@ -277,9 +318,9 @@ fn main() {
 			}
 
 			borsh: {
-				let buf_size = size_of::<u128>();
+				const ITEM_SIZE: usize = size_of::<u128>();
 
-				let mut buf = vec![0x00; buf_size * VALUE_COUNT];
+				let mut buf = vec![0x00; ITEM_SIZE * VALUE_COUNT];
 
 				for _ in 0x0..VALUE_COUNT {
 					borsh::to_writer(&mut buf, &random::<u128>()).unwrap();
@@ -289,9 +330,9 @@ fn main() {
 			librum: {
 				use librum::{Encode, OStream, SizedEncode};
 
-				let buf_size = u128::MAX_ENCODED_SIZE;
+				const ITEM_SIZE: usize = u128::MAX_ENCODED_SIZE;
 
-				let mut buf = vec![0x00; buf_size * VALUE_COUNT].into_boxed_slice();
+				let mut buf = vec![0x00; ITEM_SIZE * VALUE_COUNT].into_boxed_slice();
 				let mut stream = OStream::new(&mut buf);
 
 				for _ in 0x0..VALUE_COUNT {
@@ -300,9 +341,9 @@ fn main() {
 			}
 
 			postcard: {
-				let buf_size = size_of::<u128>();
+				const ITEM_SIZE: usize = size_of::<u128>();
 
-				let mut buf = vec![0x00; buf_size * VALUE_COUNT];
+				let mut buf = vec![0x00; ITEM_SIZE * VALUE_COUNT];
 
 				for _ in 0x0..VALUE_COUNT {
 					postcard::to_io(&random::<u128>(), &mut buf).unwrap();
@@ -314,9 +355,9 @@ fn main() {
 			bincode: {
 				use bincode::serialize_into;
 
-				let buf_size = size_of::<Unit>();
+				const ITEM_SIZE: usize = size_of::<Unit>();
 
-				let mut buf = vec![0x00; buf_size * VALUE_COUNT];
+				let mut buf = vec![0x00; ITEM_SIZE * VALUE_COUNT];
 
 				for _ in 0x0..VALUE_COUNT {
 					serialize_into(&mut buf, &Unit).unwrap();
@@ -324,9 +365,9 @@ fn main() {
 			}
 
 			borsh: {
-				let buf_size = size_of::<Unit>();
+				const ITEM_SIZE: usize = size_of::<Unit>();
 
-				let mut buf = vec![0x00; buf_size * VALUE_COUNT];
+				let mut buf = vec![0x00; ITEM_SIZE * VALUE_COUNT];
 
 				for _ in 0x0..VALUE_COUNT {
 					borsh::to_writer(&mut buf, &Unit).unwrap();
@@ -336,9 +377,9 @@ fn main() {
 			librum: {
 				use librum::{Encode, OStream, SizedEncode};
 
-				let buf_size = Unit::MAX_ENCODED_SIZE;
+				const ITEM_SIZE: usize = Unit::MAX_ENCODED_SIZE;
 
-				let mut buf = vec![0x00; buf_size * VALUE_COUNT].into_boxed_slice();
+				let mut buf = vec![0x00; ITEM_SIZE * VALUE_COUNT].into_boxed_slice();
 				let mut stream = OStream::new(&mut buf);
 
 				for _ in 0x0..VALUE_COUNT {
@@ -347,9 +388,9 @@ fn main() {
 			}
 
 			postcard: {
-				let buf_size = size_of::<Unit>();
+				const ITEM_SIZE: usize = size_of::<Unit>();
 
-				let mut buf = vec![0x00; buf_size * VALUE_COUNT];
+				let mut buf = vec![0x00; ITEM_SIZE * VALUE_COUNT];
 
 				for _ in 0x0..VALUE_COUNT {
 					postcard::to_io(&Unit, &mut buf).unwrap();
@@ -361,9 +402,9 @@ fn main() {
 			bincode: {
 				use bincode::serialize_into;
 
-				let buf_size = size_of::<Unnamed>();
+				const ITEM_SIZE: usize = size_of::<Unnamed>();
 
-				let mut buf = vec![0x00; buf_size * VALUE_COUNT];
+				let mut buf = vec![0x00; ITEM_SIZE * VALUE_COUNT];
 
 				for _ in 0x0..VALUE_COUNT {
 					serialize_into(&mut buf, &Unnamed::from_char(random())).unwrap();
@@ -371,9 +412,9 @@ fn main() {
 			}
 
 			borsh: {
-				let buf_size = size_of::<Unnamed>();
+				const ITEM_SIZE: usize = size_of::<Unnamed>();
 
-				let mut buf = vec![0x00; buf_size * VALUE_COUNT];
+				let mut buf = vec![0x00; ITEM_SIZE * VALUE_COUNT];
 
 				for _ in 0x0..VALUE_COUNT {
 					borsh::to_writer(&mut buf, &Unnamed::from_char(random())).unwrap();
@@ -383,9 +424,9 @@ fn main() {
 			librum: {
 				use librum::{Encode, OStream, SizedEncode};
 
-				let buf_size = Unnamed::MAX_ENCODED_SIZE;
+				const ITEM_SIZE: usize = Unnamed::MAX_ENCODED_SIZE;
 
-				let mut buf = vec![0x00; buf_size * VALUE_COUNT].into_boxed_slice();
+				let mut buf = vec![0x00; ITEM_SIZE * VALUE_COUNT].into_boxed_slice();
 				let mut stream = OStream::new(&mut buf);
 
 				for _ in 0x0..VALUE_COUNT {
@@ -394,9 +435,9 @@ fn main() {
 			}
 
 			postcard: {
-				let buf_size = size_of::<Unnamed>();
+				const ITEM_SIZE: usize = size_of::<Unnamed>();
 
-				let mut buf = vec![0x00; buf_size * VALUE_COUNT];
+				let mut buf = vec![0x00; ITEM_SIZE * VALUE_COUNT];
 
 				for _ in 0x0..VALUE_COUNT {
 					postcard::to_io(&Unnamed::from_char(random()), &mut buf).unwrap();
@@ -408,9 +449,9 @@ fn main() {
 			bincode: {
 				use bincode::serialize_into;
 
-				let buf_size = size_of::<Named>();
+				const ITEM_SIZE: usize = size_of::<Named>();
 
-				let mut buf = vec![0x00; buf_size * VALUE_COUNT];
+				let mut buf = vec![0x00; ITEM_SIZE * VALUE_COUNT];
 
 				for _ in 0x0..VALUE_COUNT {
 					serialize_into(&mut buf, &Named::from_u64(random())).unwrap();
@@ -418,9 +459,9 @@ fn main() {
 			}
 
 			borsh: {
-				let buf_size = size_of::<Named>();
+				const ITEM_SIZE: usize = size_of::<Named>();
 
-				let mut buf = vec![0x00; buf_size * VALUE_COUNT];
+				let mut buf = vec![0x00; ITEM_SIZE * VALUE_COUNT];
 
 				for _ in 0x0..VALUE_COUNT {
 					borsh::to_writer(&mut buf, &Named::from_u64(random())).unwrap();
@@ -430,9 +471,9 @@ fn main() {
 			librum: {
 				use librum::{Encode, OStream, SizedEncode};
 
-				let buf_size = Named::MAX_ENCODED_SIZE;
+				const ITEM_SIZE: usize = Named::MAX_ENCODED_SIZE;
 
-				let mut buf = vec![0x00; buf_size * VALUE_COUNT].into_boxed_slice();
+				let mut buf = vec![0x00; ITEM_SIZE * VALUE_COUNT].into_boxed_slice();
 				let mut stream = OStream::new(&mut buf);
 
 				for _ in 0x0..VALUE_COUNT {
@@ -441,9 +482,9 @@ fn main() {
 			}
 
 			postcard: {
-				let buf_size = size_of::<Named>();
+				const ITEM_SIZE: usize = size_of::<Named>();
 
-				let mut buf = vec![0x00; buf_size * VALUE_COUNT];
+				let mut buf = vec![0x00; ITEM_SIZE * VALUE_COUNT];
 
 				for _ in 0x0..VALUE_COUNT {
 					postcard::to_io(&Named::from_u64(random()), &mut buf).unwrap();
@@ -455,11 +496,11 @@ fn main() {
 			bincode: {
 				use bincode::serialize_into;
 
-				let buf_size =
+				const ITEM_SIZE: usize =
 					size_of::<u32>() // discriminant
 					+ size_of::<Unit>();
 
-				let mut buf = vec![0x00; buf_size * VALUE_COUNT];
+				let mut buf = vec![0x00; ITEM_SIZE * VALUE_COUNT];
 
 				for _ in 0x0..VALUE_COUNT {
 					serialize_into(&mut buf, &Enum::Unit(Unit)).unwrap();
@@ -467,11 +508,11 @@ fn main() {
 			}
 
 			borsh: {
-				let buf_size =
+				const ITEM_SIZE: usize =
 					size_of::<u8>() // discriminant
 					+ size_of::<Unit>();
 
-				let mut buf = vec![0x00; buf_size * VALUE_COUNT];
+				let mut buf = vec![0x00; ITEM_SIZE * VALUE_COUNT];
 
 				for _ in 0x0..VALUE_COUNT {
 					borsh::to_writer(&mut buf, &Enum::Unit(Unit)).unwrap();
@@ -481,11 +522,11 @@ fn main() {
 			librum: {
 				use librum::{Encode, OStream, SizedEncode};
 
-				let buf_size =
+				const ITEM_SIZE: usize =
 					isize::MAX_ENCODED_SIZE // discriminant
 					+ Unit::MAX_ENCODED_SIZE;
 
-				let mut buf = vec![0x00; buf_size * VALUE_COUNT].into_boxed_slice();
+				let mut buf = vec![0x00; ITEM_SIZE * VALUE_COUNT].into_boxed_slice();
 				let mut stream = OStream::new(&mut buf);
 
 				for _ in 0x0..VALUE_COUNT {
@@ -494,14 +535,116 @@ fn main() {
 			}
 
 			postcard: {
-				let buf_size =
+				const ITEM_SIZE: usize =
 					size_of::<u32>() // discriminant
 					+ size_of::<Unit>();
 
-				let mut buf = vec![0x00; buf_size * VALUE_COUNT];
+				let mut buf = vec![0x00; ITEM_SIZE * VALUE_COUNT];
 
 				for _ in 0x0..VALUE_COUNT {
 					postcard::to_io(&Enum::Unit(Unit), &mut buf).unwrap();
+				}
+			}
+		}
+
+		decode_u8: {
+			bincode: {
+				const ITEM_SIZE: usize = size_of::<u8>();
+
+				let buf: Box<[_]> = generate_random_data::<u8>(ITEM_SIZE, VALUE_COUNT).collect();
+
+				for i in 0x0..VALUE_COUNT {
+					let data = array::from_ref(&buf[i]).as_slice();
+
+					let _: u8 = bincode::deserialize_from(data).unwrap();
+				}
+			}
+
+			borsh: {
+				const ITEM_SIZE: usize = size_of::<u8>();
+
+				let buf: Box<[_]> = generate_random_data::<u8>(ITEM_SIZE, VALUE_COUNT).collect();
+
+				for i in 0x0..VALUE_COUNT {
+					let data = array::from_ref(&buf[i]).as_slice();
+
+					let _: u8 = borsh::from_slice(data).unwrap();
+				}
+			}
+
+			librum: {
+				use librum::{Decode, IStream, SizedEncode};
+
+				const ITEM_SIZE: usize = u8::MAX_ENCODED_SIZE;
+
+				let buf: Box<[_]> = generate_random_data::<u8>(ITEM_SIZE, VALUE_COUNT).collect();
+				let mut stream = IStream::new(&buf);
+
+				for _ in 0x0..VALUE_COUNT {
+					let _ = u8::decode(&mut stream).unwrap();
+				}
+			}
+
+			postcard: {
+				const ITEM_SIZE: usize = size_of::<u8>();
+
+				let buf: Box<[_]> = generate_random_data::<u8>(ITEM_SIZE, VALUE_COUNT).collect();
+
+				for i in 0x0..VALUE_COUNT {
+					let data = array::from_ref(&buf[i]).as_slice();
+
+					let _: u8 = postcard::from_bytes(data).unwrap();
+				}
+			}
+		}
+
+		decode_non_zero_u8: {
+			bincode: {
+				const ITEM_SIZE: usize = size_of::<NonZero<u8>>();
+
+				let buf: Box<[_]> = generate_random_data::<NonZero<u8>>(ITEM_SIZE, VALUE_COUNT).collect();
+
+				for i in 0x0..VALUE_COUNT {
+					let data = array::from_ref(&buf[i]).as_slice();
+
+					let _: NonZero<u8> = bincode::deserialize_from(data).unwrap();
+				}
+			}
+
+			borsh: {
+				const ITEM_SIZE: usize = size_of::<NonZero<u8>>();
+
+				let buf: Box<[_]> = generate_random_data::<NonZero<u8>>(ITEM_SIZE, VALUE_COUNT).collect();
+
+				for i in 0x0..VALUE_COUNT {
+					let data = array::from_ref(&buf[i]).as_slice();
+
+					let _: NonZero<u8> = borsh::from_slice(data).unwrap();
+				}
+			}
+
+			librum: {
+				use librum::{Decode, IStream, SizedEncode};
+
+				const ITEM_SIZE: usize = NonZero::<u8>::MAX_ENCODED_SIZE;
+
+				let buf: Box<[_]> = generate_random_data::<NonZero<u8>>(ITEM_SIZE, VALUE_COUNT).collect();
+				let mut stream = IStream::new(&buf);
+
+				for _ in 0x0..VALUE_COUNT {
+					let _ = NonZero::<u8>::decode(&mut stream).unwrap();
+				}
+			}
+
+			postcard: {
+				const ITEM_SIZE: usize = size_of::<NonZero<u8>>();
+
+				let buf: Box<[_]> = generate_random_data::<NonZero<u8>>(ITEM_SIZE, VALUE_COUNT).collect();
+
+				for i in 0x0..VALUE_COUNT {
+					let data = array::from_ref(&buf[i]).as_slice();
+
+					let _: NonZero<u8> = postcard::from_bytes(data).unwrap();
 				}
 			}
 		}

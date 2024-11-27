@@ -70,8 +70,11 @@ use std::time::SystemTime;
 /// When using [`Encode`], the size of the resulting encoding cannot always be known beforehand.
 /// This trait defines an upper bound for these sizes.
 ///
-/// Note that -- in practice -- this trait is **not** strictly enforceable.
-/// Users of the `Encode` and [`Decode`](crate::Decode) traits may assume that this trait is properly defined, but should still leave room for the possibility that it isn't.
+/// Note that whilst *technically* having a size limit, [`Vec`](alloc::vec::Vec), [`String`](alloc::string::String), etc. do not implement this trait.
+/// The general rule is that the size limit must be a substantial part of a type's design to constitute implementing this trait.
+///
+/// Also note that -- in practice -- this trait is **not** strictly enforceable.
+/// Users of the `Encode` and [`Decode`](crate::Decode) traits should assume that this trait is mostly properly defined, but should also still leave room for the possibility that it isn't.
 pub trait SizedEncode: Encode + Sized {
 	/// The maximum guaranteed amount of bytes that can result from an encoding.
 	///
