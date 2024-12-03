@@ -3,6 +3,11 @@
 This is the changelog of [Librum](https://mandelbrot.dk/librum/).
 See `README.md` for more information.
 
+## 0.13.1
+
+* Update readme
+* Null dependency patch versions
+
 ## 0.13.0
 
 * Add decode benchmarks

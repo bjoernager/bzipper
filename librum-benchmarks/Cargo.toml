@@ -1,6 +1,6 @@
 [package]
 name        = "librum-benchmarks"
-version     = "0.13.0"
+version     = "0.13.1"
 edition     = "2021"
 description = "Librum benchmarks."
 
@@ -12,9 +12,10 @@ repository.workspace  = true
 [dependencies]
 librum = { path = "../librum", version = "0.13.0", features = ["proc-macro"]}
 
-bincode  = "1.3.3"
-rand     = "0.8.5"
-zerocopy = "0.8.11"
+bincode  = "1.3.0"
+rand     = "0.8.0"
+rayon    = "1.10.0"
+zerocopy = "0.8.0"
 
 borsh = { version =  "1.5.1", features = ["derive"] }
 postcard = { version = "1.0.10", features = ["use-std"] }

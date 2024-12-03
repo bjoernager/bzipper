@@ -39,7 +39,7 @@
 //! The `librum-benchmarks` binary compares multiple scenarios using Librum and other, similar crates.
 //! According to my runs on an AMD Ryzen 7 3700X with default settings, these benchmarks indicate that Librum usually outperforms the other tested crates -- as demonstrated in the following table:
 //!
-//! | Benchmark                          | [Bincode] | [Borsh] | Librum | [Postcard] |
+//! | Benchmark                          | [Bincode] | [Borsh] | Librum  | [Postcard] |
 //! | :--------------------------------- | --------: | ------: | ------: | ---------: |
 //! | `encode_u8`                        |     1.004 |   0.947 |   0.806 |      0.972 |
 //! | `encode_u32`                       |     1.130 |   1.084 |   0.749 |      2.793 |

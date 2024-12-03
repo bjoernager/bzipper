@@ -16,7 +16,7 @@ This crate is compatible with `no_std`.
 As Librum is optimised exclusively for a single, binary format, it *may* outperform other libraries that are more generic in nature.
 
 The `librum-benchmarks` binary compares multiple scenarios using Librum and other, similar crates.
-According to my runs on an AMD Ryzen 7 3700X with default settings, these benchmarks indicate that Librum usually outperforms the other tested crates -- as demonstrated in the following table:
+According to my runs on an AMD Ryzen 7 3700X with default settings, these benchmarks indicate that Librum usually outperforms the other tested crates &ndash; as demonstrated in the following table:
 
 | Benchmark                          | [Bincode] | [Borsh] | Librum | [Postcard] |
 | :--------------------------------- | --------: | ------: | ------: | ---------: |
@@ -68,7 +68,7 @@ Here, each field is *chained* according to declaration order:
 ```rust
 use librum::{Buf, Decode, Encode};
 
-##[derive(Debug, Decode, Encode, PartialEq)]
+#[derive(Debug, Decode, Encode, PartialEq)]
 struct Ints {
     value0: u8,
     value1: u16,
@@ -191,7 +191,7 @@ use std::net::{SocketAddr, ToSocketAddrs, UdpSocket};
 use std::thread::spawn;
 
 // City, region, etc.:
-##[derive(Clone, Copy, Debug, Decode, Encode, Eq, PartialEq, SizedEncode)]
+#[derive(Clone, Copy, Debug, Decode, Encode, Eq, PartialEq, SizedEncode)]
 enum Area {
     AlQuds,
     Byzantion,
@@ -201,7 +201,7 @@ enum Area {
 }
 
 // Client-to-server message:
-##[derive(Debug, Decode, Encode, PartialEq, SizedEncode)]
+#[derive(Debug, Decode, Encode, PartialEq, SizedEncode)]
 enum Request {
     AtmosphericHumidity { area: Area },
     AtmosphericPressure { area: Area },
@@ -210,7 +210,7 @@ enum Request {
 }
 
 // Server-to-client message:
-##[derive(Debug, Decode, Encode, PartialEq, SizedEncode)]
+#[derive(Debug, Decode, Encode, PartialEq, SizedEncode)]
 enum Response {
     AtmosphericHumidity(f64),
     AtmosphericPressure(f64), // Pascal
