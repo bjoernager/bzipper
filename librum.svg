@@ -1,8 +1,0 @@
-<svg height="96" width="96" xmlns="http://www.w3.org/2000/svg">
-	<mask id="z">
-		<polygon fill="white" points="24,24 84,24 72,36 60,36 54,42 78,42 66,54 60,54 54,60 84,60 72,72 12,72 24,60 36,60 42,54 17,54 30,42 36,42 42,36 12,36" />
-	</mask>
-
-	<rect fill="#02764a" height="100%" width="100%" x="0" y="0" /> <!-- oklch(50% 0.115300 158.520) -->
-	<rect fill="#FFFFFF" height="100%" mask="url(#z)" width="100%" x="0" y="0" />
-</svg>

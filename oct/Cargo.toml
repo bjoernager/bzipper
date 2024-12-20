@@ -1,0 +1,31 @@
+[package]
+name          = "oct"
+version       = "0.14.0"
+edition       = "2021"
+rust-version  = "1.83"
+documentation = "https://docs.rs/oct/"
+
+authors.workspace     = true
+description.workspace = true
+readme.workspace      = true
+homepage.workspace    = true
+repository.workspace  = true
+license.workspace     = true
+keywords.workspace    = true
+categories.workspace  = true
+
+[package.metadata.docs.rs]
+all-features = true
+
+[features]
+default = ["alloc", "proc-macro", "std"]
+
+alloc      = []
+proc-macro = ["oct-macros"]
+std        = []
+
+[dependencies]
+oct-macros = { path = "../oct-macros", version = "0.14.0", optional = true}
+
+[lints]
+workspace = true

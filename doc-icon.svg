@@ -1,7 +1,17 @@
-<svg height="72" width="72" xmlns="http://www.w3.org/2000/svg">
-	<mask id="z">
-		<polygon fill="white" points="12,12 72,12 60,24 48,24 42,30 66,30 54,42 48,42 42,48 72,48 60,60 0,60 12,48 24,48 30,42 5,42 18,30 24,30 30,24 0,24" />
+<svg height="96" width="96" xmlns="http://www.w3.org/2000/svg">
+	<mask id="tHorizontalArm">
+		<rect fill="white" height="100%" width="100%" x="0" y="0" />
+		<circle cx="48" cy="48" fill="none" r="32" stroke="black" stroke-width="20" />
 	</mask>
 
-	<rect fill="#FFFFFF" height="100%" mask="url(#z)" width="100%" x="0" y="0" />
+	<mask id="glyph">
+		<!-- O: -->
+		<circle cx="48" cy="48" fill="none" r="32" stroke="white" stroke-width="16" />
+
+		<!-- T: -->
+		<rect fill="white" height="16" paint-order="stroke" stroke="black" stroke-width="4" width="96" x="0" y="40" />
+		<rect fill="white" height="96" mask="url(#tHorizontalArm)" width="16" x="40" y="0" />
+	</mask>
+
+	<rect fill="#FFFFFF" height="100%" mask="url(#glyph)" width="100%" x="0" y="0" />
 </svg>

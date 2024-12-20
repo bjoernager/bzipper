@@ -1,8 +1,6 @@
-# Librum
+oct is a Rust crate for cheaply serialising (encoding) and deserialising (decoding) data structures into binary streams
 
-Librum is a Rust crate for cheaply serialising (encoding) and deserialising (decoding) data structures into binary streams
-
-What separates this crate from others such as [Bincode](https://crates.io/crates/bincode/) or [Postcard](https://crates.io/crates/postcard/) is that this crate is extensively optimised for *just* binary encodings (whilst the mentioned crates specifically use Serde and build on a more abstract data model).
+What separates this crate from others such as [Bincode](https://crates.io/crates/bincode/) or [Postcard](https://crates.io/crates/postcard/) is that this crate is extensively optimised for directly translating into binary encodings (whilst the mentioned crates specifically use Serde as a middle layer).
 The original goal of this project was specifically to guarantee size constraints for encodings on a per-type basis at compile-time.
 Therefore, this crate may be more suited for networking or other cases where many allocations are unwanted.
 
@@ -13,24 +11,25 @@ This crate is compatible with `no_std`.
 
 ## Performance
 
-As Librum is optimised exclusively for a single, binary format, it *may* outperform other libraries that are more generic in nature.
+As oct is optimised exclusively for a single, binary format, it *may* outperform other libraries that are more generic in nature.
 
-The `librum-benchmarks` binary compares multiple scenarios using Librum and other, similar crates.
-According to my runs on an AMD Ryzen 7 3700X with default settings, these benchmarks indicate that Librum usually outperforms the other tested crates &ndash; as demonstrated in the following table:
+The `oct-benchmarks` binary compares multiple scenarios using oct and other, similar crates.
+According to my runs on an AMD Ryzen 7 3700X with default settings, these benchmarks indicate that oct usually outperforms the other tested crates -- as demonstrated in the following table:
 
-| Benchmark                          | [Bincode] | [Borsh] | Librum | [Postcard] |
+| Benchmark                          | [Bincode] | [Borsh] | oct     | [Postcard] |
 | :--------------------------------- | --------: | ------: | ------: | ---------: |
-| `encode_u8`                        |     1.004 |   0.947 |   0.806 |      0.972 |
-| `encode_u32`                       |     1.130 |   1.084 |   0.749 |      2.793 |
-| `encode_u128`                      |     2.340 |   2.328 |   1.543 |      6.380 |
+| `encode_u8`                        |     0.968 |   0.857 |   0.733 |      0.979 |
+| `encode_u32`                       |     1.065 |   0.999 |   0.730 |      2.727 |
+| `encode_u128`                      |     2.168 |   2.173 |   1.510 |      6.246 |
 | `encode_struct_unit`               |     0.000 |   0.000 |   0.000 |      0.000 |
-| `encode_struct_unnamed`            |     1.218 |   1.160 |   0.838 |      2.392 |
-| `encode_struct_named`              |     3.077 |   1.501 |   0.975 |      3.079 |
-| `encode_enum_unit`                 |     0.260 |   0.310 |   0.000 |      0.303 |
-| `decode_u8`                        |     1.116 |   1.106 |   1.110 |      1.102 |
-| `decode_non_zero_u8`               |     1.228 |   1.236 |   1.269 |      1.263 |
-| **Total time** &#8594;             |    11.373 |   9.672 |   7.291 |     18.284 |
-| **Total deviation (p.c.)** &#8594; |       +56 |     +33 |      ±0 |       +150 |
+| `encode_struct_unnamed`            |     1.241 |   1.173 |   0.823 |      3.350 |
+| `encode_struct_named`              |     3.079 |   1.507 |   0.973 |      3.082 |
+| `encode_enum_unit`                 |     0.246 |   0.297 |   0.000 |      0.295 |
+| `decode_u8`                        |     0.942 |   0.962 |   0.922 |      0.923 |
+| `decode_non_zero_u8`               |     1.126 |   1.159 |   1.127 |      1.160 |
+| `decode_bool`                      |     1.040 |   1.099 |   1.055 |      1.177 |
+| **Total time** &#8594;             |    11.873 |  10.225 |   7.873 |     18.939 |
+| **Total deviation (p.c.)** &#8594; |       +51 |     +30 |      ±0 |       +141 |
 
 [Bincode]: https://crates.io/crates/bincode/
 [Borsh]: https://crates.io/crates/borsh/
@@ -38,9 +37,9 @@ According to my runs on an AMD Ryzen 7 3700X with default settings, these benchm
 
 All quantities are measured in seconds unless otherwise noted.
 
-Currently, Librum's weakest point seems to be decoding.
+Currently, oct's weakest point seems to be decoding.
 Please note that I myself find large (relatively speaking) inconsistencies between runs in these last two benchmarks.
-Do feel free to conduct your own tests of Librum.
+Do feel free to conduct your own tests of oct.
 
 ## Data model
 
@@ -59,14 +58,16 @@ It may therefore be undesired to store encodings long-term.
 
 This crate revolves around the `Encode` and `Decode` traits, both of which handle conversions to and from byte streams.
 
-Many standard types come implemented with Librum, including most primitives as well as some standard library types such as `Option` and `Result`.
+Many standard types come implemented with oct, including most primitives as well as some standard library types such as `Option` and `Result`.
 Some [features](#feature-flags) enable an extended set of implementations.
 
 It is recommended in most cases to simply derive these two traits for user-defined types (although this is only supported with enumerations and structures -- not untagged unions).
 Here, each field is *chained* according to declaration order:
 
 ```rust
-use librum::{Buf, Decode, Encode};
+use oct::Slot;
+use oct::decode::Decode;
+use oct::encode::Encode;
 
 #[derive(Debug, Decode, Encode, PartialEq)]
 struct Ints {
@@ -85,7 +86,7 @@ const VALUE: Ints = Ints {
     value4: 0x1E_1D_1C_1B_1A_19_18_17_16_15_14_13_12_11_10_0F,
 };
 
-let mut buf = Buf::with_capacity(0x100);
+let mut buf = Slot::with_capacity(0x100);
 
 buf.write(VALUE).unwrap();
 
@@ -108,18 +109,18 @@ assert_eq!(buf.read().unwrap(), VALUE);
 
 The `Encode` and `Decode` traits both rely on streams for carrying the manipulated bytes.
 
-These streams are separated into two type: *O-streams* (output streams) and *i-streams* (input streams).
-The `Buf` type can be used to handle these streams.
+These streams are separated into two type: *output streams* and *input streams*.
+The `Slot` type can be used to handle these streams.
 
 ### Encoding
 
-To encode an object directly using the `Encode` trait, simply allocate a buffer for the encoding and wrap it in an `OStream` object:
+To encode an object directly using the `Encode` trait, simply allocate a buffer for the encoding and wrap it in an `Output` object:
 
 ```rust
-use librum::{Encode, OStream, SizedEncode};
+use oct::encode::{Encode, Output, SizedEncode};
 
 let mut buf = [0x00; char::MAX_ENCODED_SIZE];
-let mut stream = OStream::new(&mut buf);
+let mut stream = Output::new(&mut buf);
 
 'Ж'.encode(&mut stream).unwrap();
 
@@ -129,10 +130,10 @@ assert_eq!(buf, [0x16, 0x04, 0x00, 0x00].as_slice());
 Streams can also be used to chain multiple objects together:
 
 ```rust
-use librum::{Encode, OStream, SizedEncode};
+use oct::encode::{Encode, Output, SizedEncode};
 
 let mut buf = [0x0; char::MAX_ENCODED_SIZE * 0x5];
-let mut stream = OStream::new(&mut buf);
+let mut stream = Output::new(&mut buf);
 
 // Note: For serialising multiple characters, the
 // `String` and `SizedStr` types are usually
@@ -156,26 +157,26 @@ If the encoded type additionally implements `SizedEncode`, then the maximum size
 ### Decoding
 
 Decoding works with a similar syntax to encoding.
-To decode a byte array, simply call the `decode` method with an `IStream` object:
+To decode a byte array, simply call the `decode` method with an `Input` object:
 
 ```rust
-use librum::{Decode, IStream};
+use oct::decode::{Decode, Input};
 
 let data = [0x54, 0x45];
-let mut stream = IStream::new(&data);
+let mut stream = Input::new(&data);
 
 assert_eq!(u16::decode(&mut stream).unwrap(), 0x4554);
 
 // Data can theoretically be reinterpretred:
 
-stream = IStream::new(&data);
+stream = Input::new(&data);
 
 assert_eq!(u8::decode(&mut stream).unwrap(), 0x54);
 assert_eq!(u8::decode(&mut stream).unwrap(), 0x45);
 
 // Including as tuples:
 
-stream = IStream::new(&data);
+stream = Input::new(&data);
 
 assert_eq!(<(u8, u8)>::decode(&mut stream).unwrap(), (0x54, 0x45));
 ```
@@ -185,7 +186,9 @@ assert_eq!(<(u8, u8)>::decode(&mut stream).unwrap(), (0x54, 0x45));
 A UDP server/client for geographic data:
 
 ```rust
-use librum::{Buf, Encode, Decode, SizedEncode};
+use oct::Slot;
+use oct::decode::Decode;
+use oct::encode::{Encode, SizedEncode};
 use std::io;
 use std::net::{SocketAddr, ToSocketAddrs, UdpSocket};
 use std::thread::spawn;
@@ -221,8 +224,8 @@ enum Response {
 struct Party {
     pub socket: UdpSocket,
 
-    pub request_buf:  Buf::<Request>,
-    pub response_buf: Buf::<Response>,
+    pub request_buf:  Slot::<Request>,
+    pub response_buf: Slot::<Response>,
 }
 
 impl Party {
@@ -232,8 +235,8 @@ impl Party {
         let this = Self {
             socket,
 
-            request_buf:  Buf::new(),
-            response_buf: Buf::new(),
+            request_buf:  Slot::new(),
+            response_buf: Slot::new(),
         };
 
         Ok(this)
@@ -286,28 +289,28 @@ spawn(move || {
 
 ## Feature flags
 
-Librum defines the following features:
+oct defines the following features:
 
-* *`alloc`: Enables the `Buf` type and implementations for e.g. `Box` and `Arc`
-* *`proc-macro`: Pulls the procedural macros from the `librum-macros` crate
+* *`alloc`: Enables the `Slot` type and implementations for e.g. `Box` and `Arc`
+* *`proc-macro`: Pulls the procedural macros from the [`oct-macros`](https://crates.io/crates/oct-macros/) crate
 * *`std`: Enables implementations for types such as `Mutex` and `RwLock`
 
 Features marked with * are enabled by default.
 
 ## Documentation
 
-Librum has its documentation written in-source for use by `rustdoc`.
-See [Docs.rs](https://docs.rs/librum/latest/librum/) for an on-line, rendered instance.
+oct has its documentation written in-source for use by `rustdoc`.
+See [Docs.rs](https://docs.rs/oct/latest/oct/) for an on-line, rendered instance.
 
 Currently, these docs make use of some unstable features for the sake of readability.
 The nightly toolchain is therefore required when rendering them.
 
 ## Contribution
 
-Librum does not accept source code contributions at the moment.
+oct does not accept source code contributions at the moment.
 This is a personal choice by the maintainer and may be undone in the future.
 
-Do however feel free to open up an issue on [GitLab](https://gitlab.com/bjoernager/librum/issues/) or (preferably) [GitHub](https://github.com/bjoernager/librum/issues/) if you feel the need to express any concerns over the project.
+Do however feel free to open up an issue on [GitLab](https://gitlab.com/bjoernager/oct/issues/) or (preferably) [GitHub](https://github.com/bjoernager/oct/issues/) if you feel the need to express any concerns over the project.
 
 ## Copyright & Licence
 

@@ -1,13 +1,13 @@
 [workspace]
-members  = ["librum", "librum-benchmarks", "librum-macros"]
+members  = ["oct", "oct-benchmarks", "oct-macros"]
 resolver = "2"
 
 [workspace.package]
 authors     = ["Gabriel Bjørnager Jensen"]
 description = "Binary (de)serialiser."
 readme      = "README.md"
-homepage    = "https://achernar.dk/index.php?p=bzipper"
-repository  = "https://mandelbrot.dk/librum/"
+homepage    = "https://docs.rs/oct/latest/oct/"
+repository  = "https://mandelbrot.dk/oct/"
 license     = "LGPL-3.0-or-later"
 keywords    = ["api", "encoding", "io", "network", "no-std"]
 categories  = ["encoding", "network-programming", "parsing"]
@@ -35,6 +35,7 @@ empty_enum_variants_with_brackets  = "warn"
 empty_line_after_doc_comments      = "warn"
 empty_line_after_outer_attr        = "warn"
 empty_structs_with_brackets        = "warn"
+enum_glob_use                      = "forbid"
 enum_variant_names                 = "allow"
 equatable_if_let                   = "warn"
 excessive_precision                = "allow"
@@ -52,7 +53,6 @@ from_iter_instead_of_collect       = "warn"
 future_not_send                    = "deny"
 if_not_else                        = "warn"
 if_then_some_else_none             = "warn"
-ignored_unit_patterns              = "warn"
 impl_trait_in_params               = "warn"
 implicit_clone                     = "warn"
 imprecise_flops                    = "deny"

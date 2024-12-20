@@ -1,7 +1,37 @@
 # Changelog
 
-This is the changelog of [Librum](https://mandelbrot.dk/librum/).
+This is the changelog of [oct](https://mandelbrot.dk/oct/).
 See `README.md` for more information.
+
+## 0.14.0
+
+* Add more benchmarks
+* Redefine `bool` scheme
+* Remove `BoolDecodeError`
+* Rename project to *oct*
+* Rename `librum` crate to `oct`
+* Rename `librum-macros` crate to `oct-macros`
+* Rename `librum-benchmarks` crate to `oct-benchmarks`
+* Update lints
+* Update logo
+* Restructure tests
+* Rename `IStream` to `Input`
+* Rename `OStream` to `Output`
+* Make `Output::write` and `Input::{read, read_into}` fallible
+* Add `OutputError` and `InputError` error types
+* Mark `Output::write` and `Input::{read, read_into}` with `const`
+* Add `position`, `capacity`, and `remaining` methods to `Output` and `Input`
+* Rename `SizeError` to `LengthError`
+* Rework some error types
+* Fix feature flags for `From<CStringDecodeError>` for `GenericDecodeError`
+* Rename `Buf` to `Slot`
+* Remove `{Output, Input}::close`
+* Implement `AsRef<[u8]>`, `Borrow<[u8]>`, `PartialEq<{Self, [u8], &[u8], &mut [u8]}>`, and `Eq` for `Output`
+* Add `as_slice` and `as_ptr` methods to `Output`
+* Add `encode` and `decode` modules
+* Update homepage link
+* Refactor code
+* Update readme
 
 ## 0.13.1
 
