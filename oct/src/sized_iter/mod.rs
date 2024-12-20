@@ -24,7 +24,6 @@ mod tests;
 
 use core::iter::{DoubleEndedIterator, ExactSizeIterator, FusedIterator};
 use core::mem::MaybeUninit;
-use core::ptr::drop_in_place;
 use core::slice;
 
 /// Iterator to a sized slice.
@@ -149,19 +148,24 @@ impl<T, const N: usize> Iterator for SizedIter<T, N> {
 	fn nth(&mut self, index: usize) -> Option<Self::Item> {
 		if index > self.len { return None };
 
-		let start = self.pos;
-		let stop  = start + index - 0x1;
+		let skipped = {
+			let start = self.pos;
+			let stop  = start + index - 0x1;
+
+			unsafe { self.buf.get_unchecked_mut(start..stop) }
+		};
 
 		// Drop each skipped element.
-		for i in start..stop {
-			unsafe {
-				let item = &raw mut *self.buf.get_unchecked_mut(i);
 
-				drop_in_place(item);
-			}
+		for item in skipped {
+			unsafe { item.assume_init_drop() };
 		}
 
 		// Read the final element.
+
+		// SAFETY: `index` has been tested to be within
+		// bounds, and the element at that position is also
+		// guaranteed to still be alive.
 		let item = unsafe { self.buf.get_unchecked(index).assume_init_read() };
 
 		self.len -= index;

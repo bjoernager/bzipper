@@ -1,6 +1,6 @@
 [package]
 name          = "oct-macros"
-version       = "0.14.1"
+version       = "0.14.2"
 edition       = "2021"
 documentation = "https://docs.rs/oct-macros/"
 

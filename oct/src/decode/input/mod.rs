@@ -31,7 +31,7 @@ pub struct Input<'a> {
 }
 
 impl<'a> Input<'a> {
-	/// Constructs a new i-stream.
+	/// Constructs a new input stream.
 	#[inline(always)]
 	#[must_use]
 	pub fn new(buf: &'a [u8]) -> Self {

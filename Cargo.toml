@@ -4,7 +4,7 @@ resolver = "2"
 
 [workspace.package]
 authors     = ["Gabriel Bjørnager Jensen"]
-description = "Binary (de)serialiser."
+description = "Octonary transcoder."
 readme      = "README.md"
 homepage    = "https://docs.rs/oct/latest/oct/"
 repository  = "https://mandelbrot.dk/oct/"

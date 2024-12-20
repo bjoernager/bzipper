@@ -36,12 +36,12 @@ pub(crate) use sealed::PrimitiveDiscriminant as SealedPrimitiveDiscriminant;
 
 /// Denotes a primitive, integral discriminant type.
 ///
-/// This type is specifically defined as a type which may be used as a representation in the `repr` attribute, i.e. [`u8`], [`i8`], [`u16`], [`i16`], [`u32`], [`i32`], [`u64`], [`i64`], [`usize`], and [`isize`].
+/// This trait is specifically defined as a type which may be used as a representation in the `repr` attribute, i.e. [`u8`], [`i8`], [`u16`], [`i16`], [`u32`], [`i32`], [`u64`], [`i64`], [`usize`], and [`isize`].
 ///
 /// On nightly, this additionally includes [`u128`] and [`i128`] (see [`repr128`](https://github.com/rust-lang/rust/issues/56071/)).
 /// Note that this trait is implemented for these two types regardless.
 ///
-/// Internally -- specifically in the [`GenericDecodeError`](crate::error::GenericDecodeError) enumeration -- this trait guarantees representability in the `u128` type.
+/// Internally -- used specifically in the [`GenericDecodeError`](crate::error::GenericDecodeError) enumeration -- this trait guarantees representability in the `u128` type.
 pub trait PrimitiveDiscriminant: Copy + SealedPrimitiveDiscriminant + Sized { }
 
 macro_rules! impl_primitive_discriminant {

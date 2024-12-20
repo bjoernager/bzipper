@@ -3,6 +3,13 @@
 This is the changelog of [oct](https://mandelbrot.dk/oct/).
 See `README.md` for more information.
 
+## 0.14.2
+
+* Update docs
+* Update readme
+* Update package description
+* Clean up code
+
 ## 0.14.1
 
 * Update logo

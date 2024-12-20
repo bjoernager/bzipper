@@ -50,11 +50,11 @@ use alloc::sync::Arc;
 ///
 /// # Arrays
 ///
-/// This trait in the form <code>DecodeBorrowed&lt;[\[T\]]&gt;</code> is not implemented for [`[T; N]`](array) due to the fact that arrays they do not encode their length as it is instead hard-coded into the type, thus rendering their scheme incompatible with that of slices.
+/// This trait in the form <code>DecodeBorrowed&lt;[\[T\]]&gt;</code> is not implemented for [`[T; N]`](array) due to the fact that arrays do not encode their length, instead having it hard-coded into the type, thus rendering their scheme incompatible with that of slices.
 ///
 /// [\[T\]]: slice
 ///
-/// An alternative to using arrays would be to use [`SizedSlice`](crate::SizedSlice).
+/// An alternative to using arrays would be to use [`SizedSlice`](crate::SizedSlice), which *do* encode its length.
 pub trait DecodeBorrowed<B: ?Sized>: Borrow<B> + Decode { }
 
 impl<T: Decode> DecodeBorrowed<T> for T { }

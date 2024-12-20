@@ -16,7 +16,7 @@ This crate is compatible with `no_std`.
 As oct is optimised exclusively for a single, binary format, it *may* outperform other libraries that are more generic in nature.
 
 The `oct-benchmarks` binary compares multiple scenarios using oct and other, similar crates.
-According to my runs on an AMD Ryzen 7 3700X with default settings, these benchmarks indicate that oct usually outperforms the other tested crates -- as demonstrated in the following table:
+According to my runs on an AMD Ryzen 7 3700X with default settings, these benchmarks indicate that oct usually outperforms the other tested crates &ndash; as demonstrated in the following table:
 
 | Benchmark                          | [Bincode] | [Borsh] | oct     | [Postcard] |
 | :--------------------------------- | --------: | ------: | ------: | ---------: |
@@ -291,13 +291,11 @@ spawn(move || {
 
 ## Feature flags
 
-oct defines the following features:
+oct defines the following, default features:
 
-* *`alloc`: Enables the `Slot` type and implementations for e.g. `Box` and `Arc`
-* *`proc-macro`: Pulls the procedural macros from the [`oct-macros`](https://crates.io/crates/oct-macros/) crate
-* *`std`: Enables implementations for types such as `Mutex` and `RwLock`
-
-Features marked with * are enabled by default.
+* `alloc`: Enables the `Slot` type and implementations for e.g. `Box` and `Arc`
+* `proc-macro`: Pulls the procedural macros from the [`oct-macros`](https://crates.io/crates/oct-macros/) crate
+* `std`: Enables implementations for types such as `Mutex` and `RwLock`
 
 ## Documentation
 

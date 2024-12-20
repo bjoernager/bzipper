@@ -312,13 +312,11 @@
 //!
 //! # Feature flags
 //!
-//! oct defines the following features:
+//! oct defines the following, default features:
 //!
-//! * *`alloc`: Enables the [`Slot`] type and implementations for e.g. [`Box`](alloc::boxed::Box) and [`Arc`](alloc::sync::Arc)
-//! * *`proc-macro`: Pulls the procedural macros from the [`oct-macros`](https://crates.io/crates/oct-macros/) crate
-//! * *`std`: Enables implementations for types such as [`Mutex`](std::sync::Mutex) and [`RwLock`](std::sync::RwLock)
-//!
-//! Features marked with * are enabled by default.
+//! * `alloc`: Enables the [`Slot`] type and implementations for e.g. [`Box`](alloc::boxed::Box) and [`Arc`](alloc::sync::Arc)
+//! * `proc-macro`: Pulls the procedural macros from the [`oct-macros`](https://crates.io/crates/oct-macros/) crate
+//! * `std`: Enables implementations for types such as [`Mutex`](std::sync::Mutex) and [`RwLock`](std::sync::RwLock)
 //!
 //! # Documentation
 //!

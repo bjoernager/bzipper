@@ -33,7 +33,7 @@ pub struct Output<'a> {
 }
 
 impl<'a> Output<'a> {
-	/// Constructs a new o-stream.
+	/// Constructs a new output stream.
 	#[inline(always)]
 	#[must_use]
 	pub const fn new(buf: &'a mut [u8]) -> Self {

@@ -46,7 +46,7 @@ mod conv;
 ///
 /// The string itself is encoded in UTF-8 for interoperability wtih Rust's standard string facilities, and partly due to memory concerns.
 ///
-/// Keep in mind that the size limit specified by `N` denotes *bytes* (octets) and **not** *characters* -- i.e. a value of `8` may translate to between two and eight characters due to variable-length encoding.
+/// Keep in mind that the size limit specified by `N` denotes *octets* (or "bytes") and **not** *characters* -- i.e. a value of `8` may translate to anywhere between two and eight characters due to variable-length encoding.
 ///
 /// See [`SizedSlice`] for an equivalent alternative to [`Vec`](alloc::vec::Vec).
 ///
@@ -71,8 +71,6 @@ mod conv;
 /// assert_eq!(size_of_val(&str1), size_of_val(&str3));
 /// assert_eq!(size_of_val(&str2), size_of_val(&str3));
 /// ```
-///
-/// These three strings can -- by extend in theory -- also interchange their contents between each other.
 #[derive(Clone, Default)]
 pub struct SizedStr<const N: usize>(SizedSlice<u8, N>);
 
