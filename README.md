@@ -1,3 +1,5 @@
+# oct
+
 oct is a Rust crate for cheaply serialising (encoding) and deserialising (decoding) data structures into binary streams
 
 What separates this crate from others such as [Bincode](https://crates.io/crates/bincode/) or [Postcard](https://crates.io/crates/postcard/) is that this crate is extensively optimised for directly translating into binary encodings (whilst the mentioned crates specifically use Serde as a middle layer).

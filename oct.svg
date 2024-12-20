@@ -1,7 +1,7 @@
 <svg height="112" width="112" xmlns="http://www.w3.org/2000/svg">
 	<mask id="tHorizontalArm">
 		<rect fill="white" height="100%" width="100%" x="0" y="0" />
-		<circle cx="56" cy="56" fill="none" r="32" stroke="black" stroke-width="20" />
+		<circle cx="56" cy="56" fill="none" r="32" stroke="black" stroke-width="24" />
 	</mask>
 
 	<mask id="glyph">
@@ -9,7 +9,7 @@
 		<circle cx="56" cy="56" fill="none" r="32" stroke="white" stroke-width="16" />
 
 		<!-- T: -->
-		<rect fill="white" height="16" paint-order="stroke" stroke="black" stroke-width="4" width="96" x="8" y="48" />
+		<rect fill="white" height="16" paint-order="stroke" stroke="black" stroke-width="8" width="96" x="8" y="48" />
 		<rect fill="white" height="96" mask="url(#tHorizontalArm)" width="16" x="48" y="8" />
 	</mask>
 

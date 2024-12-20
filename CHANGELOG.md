@@ -3,6 +3,11 @@
 This is the changelog of [oct](https://mandelbrot.dk/oct/).
 See `README.md` for more information.
 
+## 0.14.1
+
+* Update logo
+* Update readme
+
 ## 0.14.0
 
 * Add more benchmarks
