@@ -1,7 +1,13 @@
 # Changelog
 
-This is the changelog of [oct](https://mandelbrot.dk/oct/).
+This is the changelog of [Oct](https://crates.io/crates/oct/).
 See `README.md` for more information.
+
+## 0.14.4
+
+* Update docs icon
+* Update homepage URL
+* Fix docs entries for the `encode` and `decode` modules
 
 ## 0.14.3
 

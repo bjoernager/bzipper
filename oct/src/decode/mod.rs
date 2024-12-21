@@ -19,10 +19,7 @@
 // er General Public License along with Oct. If
 // not, see <https://www.gnu.org/licenses/>.
 
-//! Error variants.
-//!
-//! This module defines the error types used by oct.
-//! All of these types define (at least conditionally) the [`Error`](core::error::Error) trait.
+//! Decoding-related facilities.
 
 use crate::use_mod;
 
