@@ -3,6 +3,13 @@
 This is the changelog of [oct](https://mandelbrot.dk/oct/).
 See `README.md` for more information.
 
+## 0.14.3
+
+* Update readme
+* Fix `SizedEncode` implementation for `Bound`
+* Clean up code
+* Fix license notices
+
 ## 0.14.2
 
 * Update docs
@@ -248,7 +255,7 @@ See `README.md` for more information.
 * Fix tuple deserialisation
 * Encode `FixedString` in UTF-8
 * Remove methods `from_chars` and `set_len` from `FixedString`
-* Rename `as_slice` and `as_mut_slice` methods in `FixedString` to `as_st` and `as_mut_str`
+* Rename `as_slice` and `as_mut_slice` methods in `FixedString` to `as_str` and `as_mut_str`
 * Add methods `as_bytes`, `push_str`, `chars`, `capacity`, and `char_indices` to `FixedString`
 * Rework `FixedString` traits
 * Remove `FixedIter`

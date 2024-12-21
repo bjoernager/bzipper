@@ -1,22 +1,22 @@
 // Copyright 2024 Gabriel Bjørnager Jensen.
 //
-// This file is part of oct.
+// This file is part of Oct.
 //
-// oct is free software: you can redistribute it
+// Oct is free software: you can redistribute it
 // and/or modify it under the terms of the GNU
 // Lesser General Public License as published by
 // the Free Software Foundation, either version 3
 // of the License, or (at your option) any later
 // version.
 //
-// oct is distributed in the hope that it will
-// be useful, but WITHOUT ANY WARRANTY; without
-// even the implied warranty of MERCHANTABILITY or
-// FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-// Lesser General Public License for more details.
+// Oct is distributed in the hope that it will be
+// useful, but WITHOUT ANY WARRANTY; without even
+// the implied warranty of MERCHANTABILITY or FIT-
+// NESS FOR A PARTICULAR PURPOSE. See the GNU Less-
+// er General Public License for more details.
 //
 // You should have received a copy of the GNU Less-
-// er General Public License along with oct. If
+// er General Public License along with Oct. If
 // not, see <https://www.gnu.org/licenses/>.
 
 #[cfg(test)]
@@ -608,9 +608,7 @@ impl<T: Encode> Encode for RangeToInclusive<T> {
 
 	#[inline(always)]
 	fn encode(&self, output: &mut Output) -> Result<(), Self::Error> {
-		self.end.encode(output)?;
-
-		Result::Ok(())
+		self.end.encode(output)
 	}
 }
 
@@ -709,13 +707,13 @@ impl Encode for SocketAddr {
 
 		match *self {
 			Self::V4(ref addr) => {
-				0x4u8.encode(output)?;
-				addr.encode(output)?;
+				let Ok(_) = 0x4u8.encode(output);
+				let Ok(_) = addr.encode(output);
 			}
 
 			Self::V6(ref addr) => {
-				0x6u8.encode(output)?;
-				addr.encode(output)?;
+				let Ok(_) = 0x6u8.encode(output);
+				let Ok(_) = addr.encode(output);
 			}
 		}
 

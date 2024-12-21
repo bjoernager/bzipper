@@ -1,22 +1,22 @@
 // Copyright 2024 Gabriel Bjørnager Jensen.
 //
-// This file is part of oct.
+// This file is part of Oct.
 //
-// oct is free software: you can redistribute it
+// Oct is free software: you can redistribute it
 // and/or modify it under the terms of the GNU
 // Lesser General Public License as published by
 // the Free Software Foundation, either version 3
 // of the License, or (at your option) any later
 // version.
 //
-// oct is distributed in the hope that it will
-// be useful, but WITHOUT ANY WARRANTY; without
-// even the implied warranty of MERCHANTABILITY or
-// FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-// Lesser General Public License for more details.
+// Oct is distributed in the hope that it will be
+// useful, but WITHOUT ANY WARRANTY; without even
+// the implied warranty of MERCHANTABILITY or FIT-
+// NESS FOR A PARTICULAR PURPOSE. See the GNU Less-
+// er General Public License for more details.
 //
 // You should have received a copy of the GNU Less-
-// er General Public License along with oct. If
+// er General Public License along with Oct. If
 // not, see <https://www.gnu.org/licenses/>.
 
 #[cfg(test)]
@@ -112,7 +112,9 @@ impl SizedEncode for bool {
 }
 
 impl<T: SizedEncode> SizedEncode for Bound<T> {
-	const MAX_ENCODED_SIZE: usize = 0x0;
+	const MAX_ENCODED_SIZE: usize =
+		u8::MAX_ENCODED_SIZE
+		+ T::MAX_ENCODED_SIZE;
 }
 
 #[cfg(feature = "alloc")]
@@ -146,7 +148,9 @@ impl SizedEncode for Infallible {
 }
 
 impl SizedEncode for IpAddr {
-	const MAX_ENCODED_SIZE: usize = u8::MAX_ENCODED_SIZE + Ipv6Addr::MAX_ENCODED_SIZE;
+	const MAX_ENCODED_SIZE: usize =
+		u8::MAX_ENCODED_SIZE
+		+ Ipv6Addr::MAX_ENCODED_SIZE;
 }
 
 impl SizedEncode for Ipv4Addr {
@@ -242,11 +246,15 @@ impl<T: SizedEncode> SizedEncode for Saturating<T> {
 }
 
 impl SizedEncode for SocketAddr {
-	const MAX_ENCODED_SIZE: usize = u8::MAX_ENCODED_SIZE + SocketAddrV6::MAX_ENCODED_SIZE;
+	const MAX_ENCODED_SIZE: usize =
+		u8::MAX_ENCODED_SIZE
+		+ SocketAddrV6::MAX_ENCODED_SIZE;
 }
 
 impl SizedEncode for SocketAddrV4 {
-	const MAX_ENCODED_SIZE: usize = Ipv4Addr::MAX_ENCODED_SIZE + u16::MAX_ENCODED_SIZE;
+	const MAX_ENCODED_SIZE: usize =
+		Ipv4Addr::MAX_ENCODED_SIZE
+		+ u16::MAX_ENCODED_SIZE;
 }
 
 /// This implementation encodes the address's bits followed by the port number, all of which in big-endian.
@@ -279,7 +287,7 @@ impl<T: SizedEncode> SizedEncode for Wrapping<T> {
 macro_rules! impl_numeric {
 	($ty:ty$(,)?) => {
 		impl ::oct::encode::SizedEncode for $ty {
-			const MAX_ENCODED_SIZE: usize = size_of::<$ty>();
+			const MAX_ENCODED_SIZE: usize = ::core::mem::size_of::<$ty>();
 		}
 	};
 }

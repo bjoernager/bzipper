@@ -1,6 +1,6 @@
-# oct
+# Oct
 
-oct is a Rust crate for cheaply serialising (encoding) and deserialising (decoding) data structures into binary streams
+Oct is a Rust crate for cheaply serialising (encoding) and deserialising (decoding) data structures to and from binary streams
 
 What separates this crate from others such as [Bincode](https://crates.io/crates/bincode/) or [Postcard](https://crates.io/crates/postcard/) is that this crate is extensively optimised for directly translating into binary encodings (whilst the mentioned crates specifically use Serde as a middle layer).
 The original goal of this project was specifically to guarantee size constraints for encodings on a per-type basis at compile-time.
@@ -13,12 +13,12 @@ This crate is compatible with `no_std`.
 
 ## Performance
 
-As oct is optimised exclusively for a single, binary format, it *may* outperform other libraries that are more generic in nature.
+As Oct is optimised exclusively for a single, binary format, it *may* outperform other libraries that are more generic in nature.
 
-The `oct-benchmarks` binary compares multiple scenarios using oct and other, similar crates.
-According to my runs on an AMD Ryzen 7 3700X with default settings, these benchmarks indicate that oct usually outperforms the other tested crates &ndash; as demonstrated in the following table:
+The `oct-benchmarks` binary compares multiple scenarios using Oct and other, similar crates.
+According to my runs on an AMD Ryzen 7 3700X with default settings, these benchmarks indicate that Oct usually outperforms the other tested crates &ndash; as demonstrated in the following table:
 
-| Benchmark                          | [Bincode] | [Borsh] | oct     | [Postcard] |
+| Benchmark                          | [Bincode] | [Borsh] | Oct     | [Postcard] |
 | :--------------------------------- | --------: | ------: | ------: | ---------: |
 | `encode_u8`                        |     0.968 |   0.857 |   0.733 |      0.979 |
 | `encode_u32`                       |     1.065 |   0.999 |   0.730 |      2.727 |
@@ -39,9 +39,9 @@ According to my runs on an AMD Ryzen 7 3700X with default settings, these benchm
 
 All quantities are measured in seconds unless otherwise noted.
 
-Currently, oct's weakest point seems to be decoding.
+Currently, Oct's weakest point seems to be decoding.
 Please note that I myself find large (relatively speaking) inconsistencies between runs in these last two benchmarks.
-Do feel free to conduct your own tests of oct.
+Do feel free to conduct your own tests of Oct.
 
 ## Data model
 
@@ -60,7 +60,7 @@ It may therefore be undesired to store encodings long-term.
 
 This crate revolves around the `Encode` and `Decode` traits, both of which handle conversions to and from byte streams.
 
-Many standard types come implemented with oct, including most primitives as well as some standard library types such as `Option` and `Result`.
+Many standard types come implemented with Oct, including most primitives as well as some standard library types such as `Option` and `Result`.
 Some [features](#feature-flags) enable an extended set of implementations.
 
 It is recommended in most cases to simply derive these two traits for user-defined types (although this is only supported with enumerations and structures -- not untagged unions).
@@ -291,7 +291,7 @@ spawn(move || {
 
 ## Feature flags
 
-oct defines the following, default features:
+Oct defines the following, default features:
 
 * `alloc`: Enables the `Slot` type and implementations for e.g. `Box` and `Arc`
 * `proc-macro`: Pulls the procedural macros from the [`oct-macros`](https://crates.io/crates/oct-macros/) crate
@@ -299,7 +299,7 @@ oct defines the following, default features:
 
 ## Documentation
 
-oct has its documentation written in-source for use by `rustdoc`.
+Oct has its documentation written in-source for use by `rustdoc`.
 See [Docs.rs](https://docs.rs/oct/latest/oct/) for an on-line, rendered instance.
 
 Currently, these docs make use of some unstable features for the sake of readability.
@@ -307,7 +307,7 @@ The nightly toolchain is therefore required when rendering them.
 
 ## Contribution
 
-oct does not accept source code contributions at the moment.
+Oct does not accept source code contributions at the moment.
 This is a personal choice by the maintainer and may be undone in the future.
 
 Do however feel free to open up an issue on [GitLab](https://gitlab.com/bjoernager/oct/issues/) or (preferably) [GitHub](https://github.com/bjoernager/oct/issues/) if you feel the need to express any concerns over the project.
