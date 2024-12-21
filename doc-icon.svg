@@ -22,6 +22,6 @@
 		<rect fill="white" height="96" mask="url(#tHorizontalArm)" width="16" x="48" y="8" />
 	</mask>
 
-	<rect fill="#000000" height="100%" mask="url(#border)" width="100%" x="0" y="0" /> <!-- oklch(50% 0.115300 158.520) -->
-	<rect fill="#FFFFFF" height="100%" mask="url(#glyph)" width="100%" x="0" y="0" />
+	<rect fill="#FFFFFF" height="100%" mask="url(#border)" width="100%" x="0" y="0" /> <!-- oklch(50% 0.115300 158.520) -->
+	<rect fill="#000000" height="100%" mask="url(#glyph)" width="100%" x="0" y="0" />
 </svg>

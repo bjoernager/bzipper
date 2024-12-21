@@ -3,14 +3,12 @@ members  = ["oct", "oct-benchmarks", "oct-macros"]
 resolver = "2"
 
 [workspace.package]
-authors     = ["Gabriel Bjørnager Jensen"]
-description = "Octonary transcoder."
-readme      = "README.md"
-homepage    = "https://crates.io/crates/oct/"
-repository  = "https://mandelbrot.dk/oct/"
-license     = "LGPL-3.0-or-later"
-keywords    = ["api", "encoding", "io", "network", "no-std"]
-categories  = ["encoding", "network-programming", "parsing"]
+authors    = ["Gabriel Bjørnager Jensen"]
+readme     = "README.md"
+repository = "https://mandelbrot.dk/oct/"
+license    = "LGPL-3.0-or-later"
+keywords   = ["api", "encoding", "io", "network", "no-std"]
+categories = ["encoding", "network-programming", "parsing"]
 
 [workspace.lints.clippy]
 as_ptr_cast_mut                    = "forbid"

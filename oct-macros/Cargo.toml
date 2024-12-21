@@ -1,13 +1,13 @@
 [package]
 name          = "oct-macros"
-version       = "0.14.4"
+version       = "0.14.5"
 edition       = "2021"
+description   = "Octonary transcoder. Procedural macros."
 documentation = "https://docs.rs/oct-macros/"
+homepage      = "https://crates.io/crates/oct-macros/"
 
 authors.workspace     = true
-description.workspace = true
 readme.workspace      = true
-homepage.workspace    = true
 repository.workspace  = true
 license.workspace     = true
 keywords.workspace    = true

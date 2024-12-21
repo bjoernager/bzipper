@@ -3,6 +3,12 @@
 This is the changelog of [Oct](https://crates.io/crates/oct/).
 See `README.md` for more information.
 
+## 0.14.5
+
+* Update docs icon
+* Update crate descriptions
+* Update homepage URLs
+
 ## 0.14.4
 
 * Update docs icon

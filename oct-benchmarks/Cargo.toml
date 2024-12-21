@@ -1,13 +1,12 @@
 [package]
 name        = "oct-benchmarks"
-version     = "0.14.4"
+version     = "0.14.5"
 edition     = "2021"
-description = "oct benchmarks."
+description = "Oct benchmarks."
 
-authors.workspace     = true
-readme.workspace      = true
-homepage.workspace    = true
-repository.workspace  = true
+authors.workspace    = true
+readme.workspace     = true
+repository.workspace = true
 
 [dependencies]
 oct = { path = "../oct", version = "0.14.0", features = ["proc-macro"]}
